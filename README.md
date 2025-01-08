@@ -33,6 +33,26 @@ Welcome to **Mosaic Culture**, a platform dedicated to preserving and celebratin
 
 ---
 
+## 🔒 **Security Features**
+
+### **1. Content Filtering**
+- **Pre-trained Safe Models**: Leverage models like **OpenAI GPT-4-turbo** with the Moderation API or **Claude AI** for sensitive content filtering.
+- **Post-Generation Review**: Integrate tools like **Perspective API** or regex filters to flag and block inappropriate outputs.
+
+### **2. Input Sanitization**
+- Use regex to sanitize user inputs and block inappropriate words or themes before processing.
+
+### **3. Guardrails for AI Behavior**
+- Implement tools like **Guardrails AI** or **LangChain constraints** to ensure adherence to expected behavior and prevent harmful outputs.
+
+### **4. Output Logging and Monitoring**
+- Log all AI-generated outputs to audit and improve moderation systems.
+
+### **5. User Feedback Loop**
+- Enable users to flag inappropriate content, using feedback to refine filters and improve safety mechanisms.
+
+---
+
 ## 🔧 **Tech Stack**
 
 ### **Front-End**
@@ -135,6 +155,7 @@ For questions, suggestions, or collaboration opportunities, reach out to us at:
 - GitHub Issues: [Open an Issue](https://github.com/your-repo/mosaic-culture/issues)
 
 Let’s celebrate and preserve our shared cultural heritage, one story at a time!
+
 
 
 Email: mistyrain11@gmail.com
