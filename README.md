@@ -1,110 +1,141 @@
-# **Mosaic Culture**  
-*A no-code cultural preservation platform leveraging AI to celebrate and share the vibrant stories, traditions, and artifacts of diverse communities.*
+# Mosaic Culture
+
+Welcome to **Mosaic Culture**, a platform dedicated to preserving and celebrating cultural stories, heritage, and memories. By integrating cutting-edge AI tools, Mosaic Culture empowers individuals and communities to share their narratives through multimedia storytelling, creating a lasting digital tapestry of human experiences.
 
 ---
 
-## **Overview**  
-Mosaic Culture empowers individuals and communities to:  
-- **Preserve Oral Histories:** Capture and transcribe cultural stories using Whisper API.  
-- **Create Immersive Narratives:** Generate audio narrations with ElevenLabs API.  
-- **Explore Interactive Timelines:** Discover and share stories through an engaging timeline interface.  
-- **Visualize Cultural Heritage:** Map and connect stories to their geographic and cultural origins.  
+## 🌍 **Features**
 
-By blending cutting-edge technology with storytelling, Mosaic Culture honors heritage and inspires future generations.
+### **1. Story Submission**
+- Submit stories in multiple formats:
+  - **Text**: Share your story through written words.
+  - **Audio**: Record and upload spoken stories.
+  - **Multimedia**: Add photos and videos to enrich your narratives.
 
----
+### **2. AI-Powered Tools**
+- **Transcription with Whisper AI**: Automatically transcribe audio stories into text, supporting multiple languages and dialects.
+- **Content Generation**:
+  - Summarize stories with GPT-4.
+  - Generate social media captions tailored for Instagram, Twitter, and Facebook.
+  - Create short, visually engaging videos with Runway AI.
 
-## **Features**  
-### **AI-Powered Transcriptions**  
-- Seamlessly convert audio stories into written text using Whisper API.  
+### **3. Interactive Features**
+- **Audio Waveform Visualization**: Display interactive waveforms for heritage recordings, complete with playback controls.
+- **Onboarding Tutorial**: A dynamic and interactive onboarding process, complete with an animated Mosaic Culture logo reveal.
 
-### **Text-to-Speech Narrations**  
-- Transform written stories into engaging audio experiences using ElevenLabs API.  
+### **4. Story Display**
+- Showcase stories with multimedia elements in a visually appealing layout.
+- Include interactive playback for audio and video components.
 
-### **Story Visualization**  
-- Host and display multimedia content (videos, images, audio) in user-friendly galleries.  
-
-### **No-Code Implementation**  
-- Built using low-code tools like Thunkable and Airtable to simplify development and ensure accessibility.
-
----
-
-## **Tech Stack**  
-### **Frontend**  
-- **Thunkable**: No-code platform for creating an intuitive app interface.  
-
-### **Backend and Database**  
-- **Airtable**: Flexible database to manage user-generated content and metadata.  
-
-### **Multimedia Hosting**  
-- **Cloudinary**: For storing and managing multimedia files like images, audio, and videos.  
-
-### **API Integrations**  
-- **Whisper API**: Converts audio submissions into accurate transcriptions.  
-- **ElevenLabs API**: Converts text stories into high-quality audio narrations.  
-
-### **Workflow Automation**  
-- **Make/Zapier**: Automates processes, such as file uploads, API calls, and database updates.  
-
-### **Optional Future Enhancements**  
-- **Mapbox API**: For mapping cultural origins of stories.  
-- **Timeline.js**: For interactive timelines showcasing cultural events and artifacts.  
+### **5. User-Centric Design**
+- Fully responsive interface optimized for desktop and mobile.
+- Heritage-themed visuals inspired by the Mosaic Culture logo.
 
 ---
 
-## **How It Works**  
-1. **User Submission**:  
-   Users upload audio stories or provide written descriptions via the app.  
+## 🔧 **Tech Stack**
 
-2. **AI Processing**:  
-   - **Whisper API**: Transcribes audio files into text.  
-   - **ElevenLabs API**: Converts written stories into narrated audio.  
+### **Front-End**
+- **React.js**: For building a dynamic and responsive user interface.
+- **Material-UI**: Pre-built components styled to reflect the Mosaic Culture theme.
 
-3. **Content Storage and Display**:  
-   - Multimedia content and metadata are stored in Airtable and hosted via Cloudinary.  
-   - Stories are shared in interactive formats, such as timelines or maps.  
+### **Back-End**
+- **Node.js + Express.js**: Manages API calls, server-side logic, and user submissions.
+
+### **Database**
+- **MongoDB**: Stores user-submitted stories, metadata, and AI-generated outputs.
+
+### **AI and APIs**
+- **Whisper AI**: For audio transcription.
+- **GPT-4**: For summarization and social media content generation.
+- **Runway AI**: For creating short, visually engaging videos.
+- **Cloudinary**: For storing and serving multimedia files.
+
+### **Deployment and Hosting**
+- **Replit**: Collaborative development environment.
+- **GitHub**: Version control and project management.
 
 ---
 
-## **Getting Started**  
-### **1. Clone the Repository**  
-```bash
-git clone https://github.com/rainwaters11/mosaic-culture.git
-cd mosaic-culture
+## 🛠️ **Setup Instructions**
 
-2. Set Up the Environment
-Obtain API keys for:
-Whisper API
-ElevenLabs API
-Cloudinary (for multimedia hosting)
-Add these keys to your environment configuration file.
-3. Deploy and Test
-Use Thunkable to deploy the frontend interface.
-Connect workflows to Airtable for data management.
-Test API integrations for transcription and text-to-speech functionality.
-Contributing
-We welcome contributions to enhance Mosaic Culture!
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-repo/mosaic-culture.git
+   ```
 
-To contribute:
+2. Install dependencies:
+   ```bash
+   cd mosaic-culture
+   npm install
+   ```
 
-1. Fork the repository:
-bash
-Copy code
-git fork https://github.com/rainwaters11/mosaic-culture.git
-2.  Create a feature branch:
-bash
-Copy code
+3. Set up environment variables:
+   - Add your API keys to the `.env` file or configure them in Replit Secrets.
+     ```env
+     OPENAI_API_KEY=your-openai-key
+     CLOUDINARY_API_KEY=your-cloudinary-key
+     CLOUDINARY_API_SECRET=your-cloudinary-secret
+     ```
+
+4. Start the development server:
+   ```bash
+   npm start
+   ```
+
+5. Open `http://localhost:3000` in your browser to access the platform.
+
+---
+
+## 📈 **Project Updates**
+
+### **Recent Implementations**
+- **Interactive Onboarding Tutorial**: Introduced an animated logo reveal and step-by-step guide for new users.
+- **AI-Driven Content Generation**: Added tools for summarizing stories, generating captions, and creating videos.
+- **Audio Waveform Visualization**: Enabled interactive playback for heritage recordings.
+- **Responsive Design Updates**: Enhanced mobile and desktop compatibility with Mosaic Culture-themed visuals.
+
+---
+
+## 🤝 **Contributing**
+We welcome contributions from the community! Follow these steps to get started:
+1. Fork the repository.
+2. Create a new branch:
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 3. Commit your changes:
-git commit -m "Add feature"
-4.  Push to the branch:
-git push origin feature-name
-5.  Submit a pull request.
-Let’s collaborate and grow Mosaic Culture together!
-License
-This project is licensed under the MIT License. See the LICENSE file for details.
+   ```bash
+   git commit -m "Add your message here"
+   ```
+4. Push your branch:
+   ```bash
+   git push origin feature/your-feature-name
+   ```
+5. Open a pull request.
 
-Contact
-For questions, feedback, or collaboration opportunities, feel free to reach out:
+---
+
+## 🛡️ **License**
+This project is licensed under the MIT License. See the `LICENSE` file for details.
+
+---
+
+## 🌟 **Acknowledgments**
+- **OpenAI** for Whisper and GPT-4.
+- **Runway AI** for video generation tools.
+- **Cloudinary** for multimedia storage.
+- Our dedicated team and contributors for their passion and hard work.
+
+---
+
+## 📬 **Contact**
+For questions, suggestions, or collaboration opportunities, reach out to us at:
+- Email: contact@mosaicculture.com
+- GitHub Issues: [Open an Issue](https://github.com/your-repo/mosaic-culture/issues)
+
+Let’s celebrate and preserve our shared cultural heritage, one story at a time!
+
 
 Email: mistyrain11@gmail.com
 LinkedIn: Misty Waters
