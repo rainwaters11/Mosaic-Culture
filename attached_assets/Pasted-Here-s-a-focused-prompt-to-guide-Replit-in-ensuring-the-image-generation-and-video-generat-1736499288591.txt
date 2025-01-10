@@ -1,0 +1,99 @@
+Here’s a focused prompt to guide **Replit** in ensuring the **image generation** and **video generation** features work properly, without adding new features:
+
+---
+
+### **Prompt for Replit: Fix and Perfect Existing Features**
+> **Focus solely on fixing and perfecting the existing image generation and video generation features in the Mosaic Culture app. Do not add new features. The app must function properly. Follow these steps:**
+>
+> ### **1. Debug Image Generation**
+> - **API Integration**:
+>   - Verify the image generation API (e.g., DALL-E or Stable Diffusion) is configured correctly.
+>   - Ensure the API key is valid and loaded from environment variables.
+>   - Test the API call with a sample prompt and confirm it returns the expected response.
+>   ```python
+>   import requests
+>
+>   def test_image_api(prompt):
+>       api_url = "https://api.openai.com/v1/images/generations"
+>       headers = {"Authorization": "Bearer YOUR_API_KEY"}
+>       data = {"prompt": prompt, "n": 1, "size": "512x512"}
+>
+>       response = requests.post(api_url, headers=headers, json=data)
+>       print("API Response Status:", response.status_code)
+>       print("API Response Content:", response.json())
+>   test_image_api("A serene forest with golden light")
+>   ```
+>
+> - **Frontend Rendering**:
+>   - Ensure the generated image URL is passed from the backend to the frontend and displayed correctly.
+>   - Add logs to confirm data flow:
+>     ```javascript
+>     console.log("Image URL received:", imageUrl);
+>     document.getElementById("generatedImage").src = imageUrl;
+>     ```
+> - **Error Handling**:
+>   - Add user-friendly error messages if the API fails or returns no content.
+
+---
+
+> ### **2. Debug Video Generation**
+> - **API Integration**:
+>   - Verify the video generation API (e.g., RunwayML or similar) is correctly configured.
+>   - Test the API with a sample request to ensure it generates video content.
+>   ```python
+>   def test_video_api(prompt):
+>       api_url = "https://api.runwayml.com/v1/video/generate"
+>       headers = {"Authorization": "Bearer YOUR_API_KEY"}
+>       data = {"prompt": prompt, "duration": 10}
+>
+>       response = requests.post(api_url, headers=headers, json=data)
+>       print("API Response Status:", response.status_code)
+>       print("API Response Content:", response.json())
+>   test_video_api("A celebration in a cultural village")
+>   ```
+>
+> - **Frontend Playback**:
+>   - Ensure the generated video URL is passed correctly to the frontend.
+>   - Debug the video player:
+>     ```javascript
+>     const videoElement = document.getElementById("generatedVideo");
+>     videoElement.src = videoUrl;
+>     videoElement.play();
+>     ```
+> - **Error Handling**:
+>   - Display an error message if the video generation fails or takes too long.
+
+---
+
+> ### **3. Optimize Data Flow**
+> - Ensure the user’s input is correctly captured and passed to the backend.
+> - Confirm that:
+>   - Input from the frontend reaches the API endpoint in the backend.
+>   - API responses are parsed and sent back to the frontend correctly.
+> - Add debugging logs to trace the data flow:
+>   ```python
+>   print("Received input for image generation:", user_input)
+>   print("API Response:", api_response)
+>   ```
+
+---
+
+> ### **4. Focus on Stability and Usability**
+> - Ensure the app runs without errors or crashes.
+> - Test for edge cases, such as:
+>   - Empty or invalid inputs.
+>   - Slow API responses or timeouts.
+> - Improve error handling to give users clear feedback:
+>   - “Image generation failed. Please try again.”
+>   - “Video generation is taking longer than expected. Please wait.”
+
+---
+
+> ### **Key Objectives**
+> - Ensure image and video generation features work flawlessly.
+> - Eliminate any bugs or errors in the current implementation.
+> - Do not add new features—focus only on perfecting existing functionality.
+
+---
+
+This prompt explicitly narrows Replit's focus to fixing the app's existing features and ensuring they work reliably. Let me know if you'd like further adjustments!
