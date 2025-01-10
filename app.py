@@ -18,114 +18,145 @@ from services.cultural_context_service import CulturalContextService
 from services.export_service import ExportService
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-# Create the app
-app = Flask(__name__)
+logger.info("Starting Flask application initialization...")
 
-# App configuration
-app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "a secret key"
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 300,
-    "pool_pre_ping": True,
-}
-app.config["UPLOAD_FOLDER"] = "static/uploads"
-app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
+try:
+    # Create the app
+    app = Flask(__name__)
+    logger.info("Flask app created")
 
-# Configure caching
-app.config["CACHE_TYPE"] = "simple"
-app.config["CACHE_DEFAULT_TIMEOUT"] = 300  # 5 minutes default cache timeout
-cache = Cache(app)
+    # App configuration
+    logger.info("Setting up app configuration...")
+    app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "a secret key"
 
-# Initialize extensions
-db.init_app(app)
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
+    # Log database URL presence (not the actual URL)
+    database_url = os.environ.get("DATABASE_URL")
+    if database_url:
+        logger.info("DATABASE_URL environment variable found")
+    else:
+        logger.error("DATABASE_URL environment variable is missing")
 
-# Ensure upload directory exists
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
+    }
+    app.config["UPLOAD_FOLDER"] = "static/uploads"
+    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
+
+    logger.info("App configuration completed")
+
+    # Configure caching
+    logger.info("Configuring cache...")
+    app.config["CACHE_TYPE"] = "simple"
+    app.config["CACHE_DEFAULT_TIMEOUT"] = 300  # 5 minutes default cache timeout
+    cache = Cache(app)
+    logger.info("Cache initialized")
+
+    # Initialize extensions
+    logger.info("Initializing database extension...")
+    try:
+        db.init_app(app)
+        logger.info("Database extension initialized successfully")
+    except Exception as db_error:
+        logger.error(f"Failed to initialize database: {str(db_error)}")
+        raise
+
+    # Initialize login manager
+    logger.info("Initializing login manager...")
+    try:
+        login_manager = LoginManager()
+        login_manager.init_app(app)
+        login_manager.login_view = 'login'
+        logger.info("Login manager initialized successfully")
+    except Exception as login_error:
+        logger.error(f"Failed to initialize login manager: {str(login_error)}")
+        raise
+
+    # Ensure upload directory exists
+    logger.info("Creating upload directory...")
+    try:
+        os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+        logger.info("Upload directory created successfully")
+    except Exception as dir_error:
+        logger.error(f"Failed to create upload directory: {str(dir_error)}")
+        raise
+
+except Exception as e:
+    logger.critical(f"Failed to initialize Flask application: {str(e)}")
+    raise
 
 # Initialize services
 def init_services():
     """Initialize all services and handle any initialization errors gracefully"""
+    logger.info("Starting services initialization")
     services = {}
-    try:
-        services['export'] = ExportService()
-        logger.info("Export service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing export service: {str(e)}")
-        services['export'] = None
 
-    try:
-        services['audio'] = AudioService()
-        logger.info("Audio service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing audio service: {str(e)}")
-        services['audio'] = None
+    # Initialize each service with detailed logging
+    service_initializers = {
+        'export': (ExportService, "Export service"),
+        'audio': (AudioService, "Audio service"),
+        'image': (ImageService, "Image service"),
+        'storage': (StorageService, "Storage service"),
+        'badge': (BadgeService, "Badge service"),
+        'story': (StoryService, "Story service"),
+        'tag': (TagService, "Tag service"),
+        'cultural_context': (CulturalContextService, "Cultural context service")
+    }
 
-    try:
-        services['image'] = ImageService()
-        logger.info("Image service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing image service: {str(e)}")
-        services['image'] = None
+    for service_key, (ServiceClass, service_name) in service_initializers.items():
+        try:
+            logger.info(f"Initializing {service_name}")
+            services[service_key] = ServiceClass()
+            logger.info(f"{service_name} initialized successfully")
+        except Exception as e:
+            logger.error(f"Error initializing {service_name}: {str(e)}")
+            services[service_key] = None
 
-    try:
-        services['storage'] = StorageService()
-        logger.info("Storage service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing storage service: {str(e)}")
-        services['storage'] = None
-
-    try:
-        services['badge'] = BadgeService()
-        logger.info("Badge service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing badge service: {str(e)}")
-        services['badge'] = None
-
-    try:
-        services['story'] = StoryService()
-        logger.info("Story service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing story service: {str(e)}")
-        services['story'] = None
-
-    try:
-        services['tag'] = TagService()
-        logger.info("Tag service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing tag service: {str(e)}")
-        services['tag'] = None
-
-    try:
-        services['cultural_context'] = CulturalContextService()
-        logger.info("Cultural context service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing cultural context service: {str(e)}")
-        services['cultural_context'] = None
+    # Log overall initialization status
+    successful_services = sum(1 for service in services.values() if service is not None)
+    total_services = len(services)
+    logger.info(f"Service initialization completed. {successful_services}/{total_services} services initialized successfully")
 
     return services
 
 # Initialize all services
+logger.info("Starting service initialization process...")
 services = init_services()
 
 # Import models after db initialization
-from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge
+logger.info("Importing models...")
+try:
+    from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge
+    logger.info("Models imported successfully")
+except Exception as model_error:
+    logger.error(f"Error importing models: {str(model_error)}")
+    raise
 
 # Initialize database and create default badges
 logger.info("Initializing database and default badges...")
 with app.app_context():
     try:
         db.create_all()
+        logger.info("Database tables created successfully")
+
         if services['badge']:
             services['badge'].initialize_default_badges()
-        logger.info("Database and badges initialized successfully")
+            logger.info("Default badges initialized")
+        else:
+            logger.warning("Badge service unavailable, skipping default badge initialization")
+
+        logger.info("Database and badges initialization completed")
     except Exception as e:
-        logger.error(f"Error initializing database: {str(e)}")
+        logger.error(f"Error initializing database and badges: {str(e)}")
+        logger.error("Application may not function correctly")
+        raise
 
 @login_manager.user_loader
 def load_user(id):
