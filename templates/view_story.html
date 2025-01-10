@@ -152,34 +152,6 @@
     </div>
 </div>
 
-<!-- Share Story Modal -->
-<div class="modal fade" id="shareModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Share Story</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="share-buttons">
-                    <button class="btn btn-outline-info w-100 mb-2" 
-                            onclick="shareOn('twitter')">
-                        <i class="fab fa-twitter me-2"></i>Share on Twitter
-                    </button>
-                    <button class="btn btn-outline-primary w-100 mb-2" 
-                            onclick="shareOn('facebook')">
-                        <i class="fab fa-facebook me-2"></i>Share on Facebook
-                    </button>
-                    <button class="btn btn-outline-secondary w-100" 
-                            onclick="shareOn('linkedin')">
-                        <i class="fab fa-linkedin me-2"></i>Share on LinkedIn
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
 // Share functionality
 function shareStory() {
@@ -214,6 +186,12 @@ function generateAudio() {
     const generatedAudio = document.getElementById('generated-audio');
     const voiceSelection = document.getElementById('voice-selection');
     const generateButton = document.getElementById('generate-audio-btn');
+    const storyId = '{{ story.id }}'; // Get story ID from template context
+
+    if (!storyId) {
+        audioStatus.innerHTML = '<div class="alert alert-danger">Error: Story ID not found</div>';
+        return;
+    }
 
     // Disable the generate button and show loading state
     generateButton.disabled = true;
@@ -226,7 +204,7 @@ function generateAudio() {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            story_id: '{{ story.id }}',
+            story_id: storyId,
             voice: voiceSelection.value
         })
     })
