@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - {{ current_user.username }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ current_user.username }}</h5>
+                    <p class="card-text">{{ current_user.email }}</p>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Achievement Badges</h5>
+                </div>
+                <div class="card-body">
+                    {% if badges %}
+                    <div class="badges-grid">
+                        {% for badge in badges %}
+                        <div class="badge-item text-center mb-3">
+                            <div class="badge-icon mb-2">
+                                <i data-feather="{{ badge.icon }}" class="text-primary"></i>
+                            </div>
+                            <h6 class="badge-name">{{ badge.name }}</h6>
+                            <small class="badge-description text-muted">{{ badge.description }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No badges earned yet. Start sharing stories to earn badges!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">My Stories</h5>
+                </div>
+                <div class="card-body">
+                    {% if stories %}
+                    <div class="stories-list">
+                        {% for story in stories %}
+                        <div class="story-item mb-4">
+                            <h5><a href="{{ url_for('view_story', story_id=story.id) }}">{{ story.title }}</a></h5>
+                            <p class="text-muted">
+                                Posted on {{ story.submission_date.strftime('%B %d, %Y') }} |
+                                {{ story.likes|length }} likes |
+                                {{ story.comments|length }} comments
+                            </p>
+                            <p>{{ story.content[:200] }}...</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">You haven't shared any stories yet.</p>
+                    <a href="{{ url_for('submit_story') }}" class="btn btn-primary">Share Your First Story</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.badges-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.badge-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    border-radius: 50%;
+}
+
+.badge-icon i {
+    width: 24px;
+    height: 24px;
+}
+
+.badge-name {
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.badge-description {
+    font-size: 0.8rem;
+    display: block;
+}
+</style>
+{% endblock %}

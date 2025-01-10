@@ -1,24 +1,20 @@
 import os
 import logging
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required
 import datetime
+from database import db
 from services.audio_service import AudioService
 from services.image_service import ImageService
 from services.storage_service import StorageService
+from services.badge_service import BadgeService
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
-# Base class for SQLAlchemy models
-class Base(DeclarativeBase):
-    pass
-
-db = SQLAlchemy(model_class=Base)
+# Create the app
 app = Flask(__name__)
 
 # App configuration
@@ -44,6 +40,7 @@ os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 audio_service = AudioService()
 image_service = ImageService()
 storage_service = StorageService()
+badge_service = BadgeService()
 
 # Import models after db initialization
 from models import User, Story, Comment, Like, Tag
@@ -183,7 +180,13 @@ def submit_story():
 
         db.session.add(story)
         db.session.commit()
-        flash("Story submitted successfully!", "success")
+
+        # After successful story submission, check for new badges
+        new_badges = badge_service.check_and_award_badges(current_user)
+        if new_badges:
+            badge_names = [badge.name for badge in new_badges]
+            flash(f"Congratulations! You earned new badges: {', '.join(badge_names)}", "success")
+
         return redirect(url_for("gallery"))
 
     return render_template("submit.html")
@@ -246,5 +249,13 @@ def add_comment(story_id):
 
     return redirect(url_for("gallery"))
 
+@app.route("/profile")
+@login_required
+def profile():
+    user_badges = badge_service.get_user_badges(current_user)
+    user_stories = Story.query.filter_by(user_id=current_user.id).order_by(Story.submission_date.desc()).all()
+    return render_template("profile.html", badges=user_badges, stories=user_stories)
+
 with app.app_context():
     db.create_all()
+    badge_service.initialize_default_badges()
