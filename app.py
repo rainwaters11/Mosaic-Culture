@@ -532,21 +532,37 @@ def generate_audio():
                 "error": "No data provided"
             }), 400
 
+        # Extract and validate story_id
         story_id = data.get("story_id")
-        voice_name = data.get("voice", "Aria")  # Default to Aria voice
-
-        # Log request details
-        logger.debug(f"Received audio generation request for story {story_id} with voice {voice_name}")
+        logger.debug(f"Received story_id: {story_id}")
 
         if not story_id:
-            logger.error("No story_id provided in request")
+            logger.error("No story_id provided in request data")
             return jsonify({
                 "success": False,
                 "error": "Missing story_id"
             }), 400
 
+        try:
+            story_id = int(story_id)  # Ensure story_id is an integer
+        except (TypeError, ValueError):
+            logger.error(f"Invalid story_id format: {story_id}")
+            return jsonify({
+                "success": False,
+                "error": "Invalid story ID format"
+            }), 400
+
+        voice_name = data.get("voice", "Aria")  # Default to Aria voice
+        logger.debug(f"Generating audio for story {story_id} with voice {voice_name}")
+
         # Fetch the story
-        story = Story.query.get_or_404(story_id)
+        story = Story.query.get(story_id)
+        if not story:
+            logger.error(f"Story not found with ID: {story_id}")
+            return jsonify({
+                "success": False,
+                "error": "Story not found"
+            }), 404
 
         if not story.content:
             logger.error(f"Story {story_id} has no content")

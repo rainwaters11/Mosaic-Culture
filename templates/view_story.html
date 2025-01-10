@@ -186,8 +186,9 @@ function generateAudio() {
     const generatedAudio = document.getElementById('generated-audio');
     const voiceSelection = document.getElementById('voice-selection');
     const generateButton = document.getElementById('generate-audio-btn');
-    const storyId = '{{ story.id }}'; // Get story ID from template context
+    const storyId = {{ story.id }}; // Get story ID directly from Jinja context
 
+    // Validate story ID
     if (!storyId) {
         audioStatus.innerHTML = '<div class="alert alert-danger">Error: Story ID not found</div>';
         return;
@@ -197,6 +198,10 @@ function generateAudio() {
     generateButton.disabled = true;
     generateButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
     audioStatus.innerHTML = '<div class="alert alert-info">Generating audio narration... This may take a few moments.</div>';
+
+    // Log request data for debugging
+    console.log('Generating audio for story:', storyId);
+    console.log('Selected voice:', voiceSelection.value);
 
     fetch('/api/generate-audio', {
         method: 'POST',
