@@ -2,6 +2,7 @@ import os
 import logging
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required
+from flask_caching import Cache
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
@@ -11,7 +12,7 @@ from services.image_service import ImageService
 from services.storage_service import StorageService
 from services.badge_service import BadgeService
 from services.story_service import StoryService
-from services.tag_service import TagService # Added import
+from services.tag_service import TagService
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -30,6 +31,11 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 app.config["UPLOAD_FOLDER"] = "static/uploads"
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
 
+# Configure caching
+app.config["CACHE_TYPE"] = "simple"
+app.config["CACHE_DEFAULT_TIMEOUT"] = 300  # 5 minutes default cache timeout
+cache = Cache(app)
+
 # Initialize extensions
 db.init_app(app)
 login_manager = LoginManager()
@@ -45,7 +51,7 @@ image_service = ImageService()
 storage_service = StorageService()
 badge_service = BadgeService()
 story_service = StoryService()
-tag_service = TagService() # Added service initialization
+tag_service = TagService()
 
 # Import models after db initialization
 from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge
@@ -318,9 +324,19 @@ def profile():
 
 @app.route("/generate_story", methods=["POST"])
 @login_required
+@cache.memoize(timeout=300)  # Cache for 5 minutes
 def generate_story():
+    """Generate a story with caching to avoid repeated API calls"""
     try:
         data = request.get_json()
+        cache_key = f"story_{data.get('title')}_{data.get('theme')}_{data.get('region')}"
+
+        # Try to get from cache first
+        cached_result = cache.get(cache_key)
+        if cached_result:
+            logger.info("Returning cached story generation result")
+            return jsonify(cached_result)
+
         title = data.get("title")
         theme = data.get("theme")
         region = data.get("region")
@@ -330,13 +346,12 @@ def generate_story():
 
         generated_content = story_service.generate_story(title, theme, region)
         if generated_content:
-            # Include sensitivity analysis in response
-            sensitivity_analysis = generated_content.get("sensitivity_analysis")
             try:
                 import json
+                sensitivity_analysis = generated_content.get("sensitivity_analysis")
                 analysis = json.loads(sensitivity_analysis) if sensitivity_analysis else {}
 
-                return jsonify({
+                result = {
                     "success": True,
                     "content": generated_content["content"],
                     "sensitivity": {
@@ -345,13 +360,19 @@ def generate_story():
                         "suggestions": analysis.get("improvement_suggestions", ""),
                         "issues": analysis.get("issues", [])
                     }
-                })
+                }
+
+                # Cache the successful result
+                cache.set(cache_key, result)
+                return jsonify(result)
             except Exception as e:
                 logger.error(f"Error parsing sensitivity analysis: {str(e)}")
-                return jsonify({
+                result = {
                     "success": True,
                     "content": generated_content["content"]
-                })
+                }
+                cache.set(cache_key, result)
+                return jsonify(result)
         else:
             return jsonify({"success": False, "error": "Failed to generate story"}), 500
 
@@ -361,8 +382,9 @@ def generate_story():
 
 @app.route("/api/suggest_tags", methods=["POST"])
 @login_required
+@cache.memoize(timeout=300)  # Cache tag suggestions
 def suggest_tags():
-    """API endpoint to get tag suggestions for a story"""
+    """API endpoint to get tag suggestions with caching"""
     try:
         data = request.get_json()
         content = data.get("content", "")
@@ -371,7 +393,20 @@ def suggest_tags():
         if not content or not region:
             return jsonify({"success": False, "error": "Missing content or region"}), 400
 
+        # Create a cache key based on content preview and region
+        cache_key = f"tags_{region}_{content[:100]}"
+        cached_tags = cache.get(cache_key)
+
+        if cached_tags:
+            logger.info("Returning cached tag suggestions")
+            return jsonify({
+                "success": True,
+                "tags": cached_tags
+            })
+
         suggested_tags = tag_service.suggest_cultural_tags(content, region)
+        cache.set(cache_key, suggested_tags)
+
         return jsonify({
             "success": True,
             "tags": suggested_tags

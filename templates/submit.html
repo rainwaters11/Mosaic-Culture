@@ -113,57 +113,96 @@ document.addEventListener('DOMContentLoaded', function() {
     const regionSelect = document.getElementById('region');
     const tagInput = document.getElementById('tags');
     const tagSuggestions = document.getElementById('tagSuggestions');
+    const generateImageCheckbox = document.getElementById('generate_image');
+    const generateAudioCheckbox = document.getElementById('generate_audio');
 
-    let suggestionTimeout;
-    const getSuggestions = () => {
-        clearTimeout(suggestionTimeout);
-        suggestionTimeout = setTimeout(async () => {
-            const content = contentTextarea.value;
-            const region = regionSelect.value;
+    // Add loading overlay
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.className = 'position-fixed top-0 start-0 w-100 h-100 d-none';
+    loadingOverlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+    loadingOverlay.style.zIndex = '1000';
+    loadingOverlay.innerHTML = `
+        <div class="position-absolute top-50 start-50 translate-middle text-white text-center">
+            <div class="spinner-border mb-2" role="status"></div>
+            <div id="loading-text">Processing...</div>
+        </div>
+    `;
+    document.body.appendChild(loadingOverlay);
 
-            if (!content || !region) return;
-
-            try {
-                const response = await fetch('/api/suggest_tags', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ content, region })
-                });
-
-                const data = await response.json();
-                if (data.success && data.tags) {
-                    const suggestions = data.tags
-                        .filter(tag => !tagInput.value.includes(tag))
-                        .map(tag => `
-                            <span class="badge bg-secondary me-1 mb-1 suggested-tag" 
-                                  style="cursor: pointer;">${tag}</span>
-                        `)
-                        .join('');
-
-                    tagSuggestions.innerHTML = suggestions ? 
-                        `<small class="text-muted d-block mb-2">Suggested cultural tags:</small>${suggestions}` :
-                        '<small class="text-muted">No additional suggestions</small>';
-
-                    document.querySelectorAll('.suggested-tag').forEach(tag => {
-                        tag.addEventListener('click', () => {
-                            const currentTags = tagInput.value.split(',').map(t => t.trim()).filter(t => t);
-                            currentTags.push(tag.textContent.trim());
-                            tagInput.value = currentTags.join(', ');
-                            tag.remove();
-                        });
-                    });
-                }
-            } catch (error) {
-                console.error('Error getting tag suggestions:', error);
-            }
-        }, 1000); 
+    const showLoading = (message) => {
+        document.getElementById('loading-text').textContent = message;
+        loadingOverlay.classList.remove('d-none');
     };
+
+    const hideLoading = () => {
+        loadingOverlay.classList.add('d-none');
+    };
+
+    // Debounce function for tag suggestions
+    const debounce = (func, wait) => {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    };
+
+    // Tag suggestion logic with debouncing
+    const getSuggestions = debounce(async () => {
+        const content = contentTextarea.value;
+        const region = regionSelect.value;
+
+        if (!content || !region) return;
+
+        try {
+            showLoading('Getting tag suggestions...');
+            const response = await fetch('/api/suggest_tags', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content, region })
+            });
+
+            const data = await response.json();
+            if (data.success && data.tags) {
+                const suggestions = data.tags
+                    .filter(tag => !tagInput.value.includes(tag))
+                    .map(tag => `
+                        <span class="badge bg-secondary me-1 mb-1 suggested-tag" 
+                              style="cursor: pointer;">${tag}</span>
+                    `)
+                    .join('');
+
+                tagSuggestions.innerHTML = suggestions ? 
+                    `<small class="text-muted d-block mb-2">Suggested cultural tags:</small>${suggestions}` :
+                    '<small class="text-muted">No additional suggestions</small>';
+
+                document.querySelectorAll('.suggested-tag').forEach(tag => {
+                    tag.addEventListener('click', () => {
+                        const currentTags = tagInput.value.split(',').map(t => t.trim()).filter(t => t);
+                        currentTags.push(tag.textContent.trim());
+                        tagInput.value = currentTags.join(', ');
+                        tag.remove();
+                    });
+                });
+            }
+        } catch (error) {
+            console.error('Error getting tag suggestions:', error);
+            tagSuggestions.innerHTML = '<small class="text-danger">Error getting suggestions. Please try again.</small>';
+        } finally {
+            hideLoading();
+        }
+    }, 1000);
 
     contentTextarea.addEventListener('input', getSuggestions);
     regionSelect.addEventListener('change', getSuggestions);
 
+    // Enhanced story generation with better feedback
     useAiCheckbox.addEventListener('change', async function() {
         if (this.checked) {
             const title = document.getElementById('title').value;
@@ -176,10 +215,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            submitButton.disabled = true;
-            submitButton.textContent = 'Generating Story...';
-
             try {
+                showLoading('Generating your story...');
+                submitButton.disabled = true;
+
                 const response = await fetch('/generate_story', {
                     method: 'POST',
                     headers: {
@@ -191,20 +230,68 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
                 if (data.success && data.content) {
                     contentTextarea.value = data.content;
+
+                    // Show sensitivity feedback if available
+                    if (data.sensitivity) {
+                        const sensitivityHtml = `
+                            <div class="alert alert-info mt-3">
+                                <h6>Cultural Sensitivity Analysis:</h6>
+                                <p>Rating: ${data.sensitivity.rating}/10</p>
+                                ${data.sensitivity.suggestions ? 
+                                    `<p><strong>Suggestions:</strong> ${data.sensitivity.suggestions}</p>` : ''}
+                            </div>
+                        `;
+                        contentTextarea.insertAdjacentHTML('afterend', sensitivityHtml);
+                    }
                 } else {
-                    alert('Failed to generate story. Please try again or write your story manually.');
-                    this.checked = false;
+                    throw new Error(data.error || 'Failed to generate story');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('An error occurred while generating the story.');
+                alert('An error occurred while generating the story. Please try again or write your story manually.');
                 this.checked = false;
             } finally {
                 submitButton.disabled = false;
-                submitButton.textContent = 'Submit Story';
+                hideLoading();
+            }
+        }
+    });
+
+    // Form submission handling
+    form.addEventListener('submit', async (e) => {
+        if (generateImageCheckbox.checked || generateAudioCheckbox.checked) {
+            e.preventDefault();
+            showLoading('Submitting story and generating media...');
+
+            try {
+                const formData = new FormData(form);
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.redirected) {
+                    window.location.href = response.url;
+                } else {
+                    const data = await response.json();
+                    if (!data.success) {
+                        throw new Error(data.error);
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while submitting your story. Please try again.');
+                hideLoading();
             }
         }
     });
 });
 </script>
+
+<style>
+.suggested-tag:hover {
+    background-color: #6c757d !important;
+    opacity: 0.9;
+}
+</style>
 {% endblock %}
