@@ -1,0 +1,150 @@
+Here’s a clear and structured **prompt for Replit Whisperer** to implement a **Share Stories to Social Media** feature from the submission page or user profile page:
+
+---
+
+### **Prompt for Replit Whisperer: Implement Social Media Sharing**
+> **Objective**: Build a feature that allows users to share stories from the submission page or their profile page directly to social media platforms (e.g., Facebook, Twitter, LinkedIn). Ensure the feature is user-friendly and integrates seamlessly with the app’s current structure. Follow these steps:
+>
+> ### **1. Design the Share Button**
+> - Add a **"Share" button** to the submission page and user profile page.
+> - Include a social media icon (e.g., Twitter, Facebook) to enhance the button’s appearance.
+> - **Example HTML**:
+>   ```html
+>   <button class="share-btn" data-url="https://app.com/story/123">
+>     <img src="icon-share.svg" alt="Share"> Share Story
+>   </button>
+>   ```
+
+---
+
+> ### **2. Implement Social Media Sharing Logic**
+> - Use the **Web Share API** for modern browsers or generate shareable links for each platform:
+>   - **Web Share API**:
+>     ```javascript
+>     document.querySelector('.share-btn').addEventListener('click', function () {
+>       const storyUrl = this.getAttribute('data-url');
+>       const storyTitle = "Check out this amazing story!";
+>       if (navigator.share) {
+>         navigator.share({
+>           title: storyTitle,
+>           text: "Celebrate and share your heritage!",
+>           url: storyUrl,
+>         })
+>         .then(() => console.log("Story shared successfully"))
+>         .catch((error) => console.error("Error sharing:", error));
+>       } else {
+>         alert("Sharing is not supported on this browser.");
+>       }
+>     });
+>     ```
+>   - **Platform-Specific Links**:
+>     Generate URLs for platforms:
+>     - **Twitter**:
+>       ```javascript
+>       const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(storyTitle)}&url=${encodeURIComponent(storyUrl)}`;
+>       window.open(twitterUrl, '_blank');
+>       ```
+>     - **Facebook**:
+>       ```javascript
+>       const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(storyUrl)}`;
+>       window.open(facebookUrl, '_blank');
+>       ```
+>     - **LinkedIn**:
+>       ```javascript
+>       const linkedInUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(storyUrl)}&title=${encodeURIComponent(storyTitle)}`;
+>       window.open(linkedInUrl, '_blank');
+>       ```
+
+---
+
+> ### **3. Dynamic Integration with Backend**
+> - Ensure the story’s URL is dynamically generated and attached to the button.
+> - Example Backend Endpoint:
+>   ```python
+>   @app.route('/api/story/<story_id>', methods=['GET'])
+>   def get_story_url(story_id):
+>       story = db.get_story(story_id)
+>       if story:
+>           return jsonify({"url": f"https://app.com/story/{story_id}"})
+>       return jsonify({"error": "Story not found"}), 404
+>   ```
+> - Pass the story URL to the frontend:
+>   ```javascript
+>   fetch(`/api/story/${storyId}`)
+>     .then(response => response.json())
+>     .then(data => {
+>       document.querySelector('.share-btn').setAttribute('data-url', data.url);
+>     });
+>   ```
+
+---
+
+> ### **4. Add Analytics for Sharing**
+> - Track which stories are shared and to which platforms:
+>   ```javascript
+>   function trackShare(platform, storyId) {
+>     fetch('/api/track-share', {
+>       method: 'POST',
+>       headers: { 'Content-Type': 'application/json' },
+>       body: JSON.stringify({ platform, storyId }),
+>     })
+>     .then(() => console.log("Share tracked successfully"))
+>     .catch((error) => console.error("Error tracking share:", error));
+>   }
+>   ```
+> - Example Backend Endpoint:
+>   ```python
+>   @app.route('/api/track-share', methods=['POST'])
+>   def track_share():
+>       data = request.json
+>       db.save_share(data['platform'], data['storyId'])
+>       return jsonify({"message": "Share tracked successfully"})
+>   ```
+
+---
+
+> ### **5. Ensure Responsive Design**
+> - Optimize the button layout and appearance for mobile and desktop views:
+>   ```css
+>   .share-btn {
+>       display: flex;
+>       align-items: center;
+>       background-color: #4caf50;
+>       color: #fff;
+>       padding: 0.5rem 1rem;
+>       border: none;
+>       border-radius: 5px;
+>       font-size: 1rem;
+>       cursor: pointer;
+>       transition: background-color 0.3s ease;
+>   }
+>   .share-btn:hover {
+>       background-color: #388e3c;
+>   }
+>   .share-btn img {
+>       width: 20px;
+>       height: 20px;
+>       margin-right: 0.5rem;
+>   }
+>   ```
+
+---
+
+> ### **6. Testing**
+> - Test the feature on different browsers to ensure compatibility with the Web Share API.
+> - Verify platform-specific links work as intended for Twitter, Facebook, and LinkedIn.
+> - Handle edge cases:
+>   - Sharing unsupported on the browser/device.
+>   - Missing or invalid story URL.
+
+---
+
+### **Deliverables**
+1. A fully functional **Share to Social Media** button on the submission and user profile pages.
+2. Integration with platform-specific sharing links and the Web Share API.
+3. Analytics tracking for shared stories.
+4. Responsive and visually appealing design.
+
+---
+
+This prompt ensures the feature is not only functional but also polished and ready for real-world use. Let me know if you’d like additional adjustments!

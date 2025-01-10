@@ -51,8 +51,10 @@ class Story(db.Model):
     comments = db.relationship('Comment', backref='story', lazy=True)
     tags = db.relationship('Tag', secondary=story_tags, lazy='subquery',
         backref=db.backref('stories', lazy=True))
-    is_featured = db.Column(db.Boolean, default=False)  # New column for featured status
-    featured_date = db.Column(db.DateTime)  # New column to track when story was featured
+    is_featured = db.Column(db.Boolean, default=False)
+    featured_date = db.Column(db.DateTime)
+    # Define shares relationship without duplicate backref
+    shares = db.relationship('StoryShare', backref=db.backref('parent_story', lazy=True))
 
     @classmethod
     def get_featured_stories(cls, limit=5):
@@ -96,3 +98,10 @@ class Comment(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     parent_id = db.Column(db.Integer, db.ForeignKey('comments.id'), nullable=True)
     replies = db.relationship('Comment', backref=db.backref('parent', remote_side=[id]), lazy=True)
+
+class StoryShare(db.Model):
+    __tablename__ = 'story_shares'
+    id = db.Column(db.Integer, primary_key=True)
+    story_id = db.Column(db.Integer, db.ForeignKey('stories.id'), nullable=False)
+    platform = db.Column(db.String(50), nullable=False)  # e.g., 'twitter', 'facebook', 'native'
+    shared_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)

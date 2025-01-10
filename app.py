@@ -15,6 +15,7 @@ from services.story_service import StoryService
 from services.tag_service import TagService
 from services.cultural_context_service import CulturalContextService
 from services.video_service import VideoService
+from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge, StoryShare # Assuming StoryShare is defined elsewhere
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -113,7 +114,7 @@ def init_services():
 services = init_services()
 
 # Import models after db initialization
-from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge
+#from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge
 
 # Initialize database and create default badges
 logger.info("Initializing database and default badges...")
@@ -327,29 +328,28 @@ def submit_story():
             try:
                 db.session.commit()
                 logger.info(f"Successfully saved story with ID: {story.id}")
-                flash("Your story has been submitted successfully!", "success")
 
-                # Check for new badges
-                if services['badge']:
-                    new_badges = services['badge'].check_and_award_badges(current_user)
-                    if new_badges:
-                        badge_names = [badge.name for badge in new_badges]
-                        flash(f"Congratulations! You earned new badges: {', '.join(badge_names)}", "success")
-                else:
-                    logger.error("Badge service is not available")
+                # Return success with story URL for sharing
+                return jsonify({
+                    "success": True,
+                    "message": "Your story has been submitted successfully!",
+                    "story_url": url_for('view_story', story_id=story.id, _external=True)
+                })
 
             except Exception as e:
                 logger.error(f"Error saving story: {str(e)}")
                 db.session.rollback()
-                flash("Error saving your story", "error")
-                return redirect(url_for("submit_story"))
-
-            return redirect(url_for("gallery"))
+                return jsonify({
+                    "success": False,
+                    "error": "Error saving your story"
+                })
 
         except Exception as e:
             logger.error(f"Unexpected error in submit_story: {str(e)}")
-            flash("An unexpected error occurred", "error")
-            return redirect(url_for("submit_story"))
+            return jsonify({
+                "success": False,
+                "error": "An unexpected error occurred"
+            })
 
     return render_template("submit.html")
 
@@ -737,3 +737,54 @@ def generate_video():
     except Exception as e:
         logger.error(f"Error in generate_video endpoint: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/track-share", methods=["POST"])
+@login_required
+def track_share():
+    """Track when a story is shared on social media"""
+    try:
+        data = request.get_json()
+        if not data or 'url' not in data or 'platform' not in data:
+            return jsonify({
+                "success": False,
+                "error": "Missing required fields"
+            }), 400
+
+        # Extract story ID from URL
+        story_id = None
+        try:
+            path = request.host_url + url_for('view_story', story_id=0)[:-1]
+            story_id = int(data['url'].replace(path, ''))
+        except Exception as e:
+            logger.error(f"Error extracting story ID from URL: {str(e)}")
+            return jsonify({
+                "success": False,
+                "error": "Invalid story URL"
+            }), 400
+
+        story = Story.query.get(story_id)
+        if not story:
+            return jsonify({
+                "success": False,
+                "error": "Story not found"
+            }), 404
+
+        # Record the share
+        share = StoryShare(
+            story_id=story.id,
+            platform=data['platform']
+        )
+        db.session.add(share)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Share tracked successfully"
+        })
+
+    except Exception as e:
+        logger.error(f"Error tracking share: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
