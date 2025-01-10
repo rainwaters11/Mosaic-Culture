@@ -34,7 +34,11 @@
                     <h1 class="card-title">{{ story.title }}</h1>
                     <div class="story-meta mb-3">
                         <span class="badge bg-secondary">{{ story.region }}</span>
-                        <small class="text-muted">By {{ story.author.username }} on {{ story.submission_date.strftime('%B %d, %Y') }}</small>
+                        <small class="text-muted">By {{ story.author.username }} 
+                        {% if story.submission_date %}
+                            on {{ story.submission_date.strftime('%B %d, %Y') }}
+                        {% endif %}
+                        </small>
                     </div>
 
                     {% if story.tags %}

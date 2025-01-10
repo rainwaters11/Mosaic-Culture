@@ -1,0 +1,99 @@
+To prompt **Replit Whisperer** (or your debugging process) to fix the **Share Story** and **Explore** buttons that don’t work, you can craft a clear and detailed prompt as follows:
+
+---
+
+### **Prompt for Replit Whisperer: Fix Broken Buttons**
+> **Objective**: The `Share Story` and `Explore` buttons on the Mosaic Culture app are not functioning. Identify the root cause and ensure both buttons work as intended. Follow these steps:
+>
+> ### **1. Debug the Button Functionality**
+> - Verify the buttons are properly linked to their respective actions:
+>   - **Share Story**: Should navigate to the story submission page or trigger a sharing modal.
+>   - **Explore**: Should navigate to the story gallery or trigger a filtered view of stories.
+>
+> Example HTML:
+> ```html
+> <button id="share-story-btn">Share Story</button>
+> <button id="explore-btn">Explore</button>
+> ```
+>
+> ### **2. Check Event Listeners**
+> - Confirm that the buttons have event listeners attached in the JavaScript:
+>   ```javascript
+>   document.getElementById("share-story-btn").addEventListener("click", function () {
+>       window.location.href = "/submit";
+>   });
+
+>   document.getElementById("explore-btn").addEventListener("click", function () {
+>       window.location.href = "/gallery";
+>   });
+>   ```
+> - Add debugging logs to ensure the click events are firing:
+>   ```javascript
+>   console.log("Share Story button clicked");
+>   console.log("Explore button clicked");
+>   ```
+
+---
+
+> ### **3. Verify Routes and Navigation**
+> - Check that the routes `/submit` and `/gallery` (or their respective routes) exist in your backend framework (e.g., Flask, Django, Express).
+> - Example Flask routes:
+>   ```python
+>   @app.route("/submit")
+>   def submit_story():
+>       return render_template("submit.html")
+
+>   @app.route("/gallery")
+>   def story_gallery():
+>       return render_template("gallery.html")
+>   ```
+
+---
+
+> ### **4. Test Backend Responses**
+> - Verify the backend returns the correct content for the `/submit` and `/gallery` routes:
+>   - Use a tool like **Postman** or a browser to visit these URLs directly.
+>   - Ensure they load the expected pages without errors.
+>
+> Example Response Test:
+> ```bash
+> curl http://localhost:5000/submit
+> curl http://localhost:5000/gallery
+> ```
+
+---
+
+> ### **5. Check Button Styling and Visibility**
+> - Ensure the buttons are styled properly and not hidden or disabled:
+>   ```css
+>   #share-story-btn, #explore-btn {
+>       display: block;
+>       pointer-events: auto;
+>   }
+>   ```
+> - Add hover effects and feedback to indicate they are clickable:
+>   ```css
+>   button:hover {
+>       background-color: #4caf50;
+>   }
+>   ```
+
+---
+
+> ### **6. Test Edge Cases**
+> - Test the buttons in different scenarios:
+>   - What happens if the user clicks them without being logged in?
+>   - Do they work on mobile devices?
+>   - Does a network error prevent navigation?
+
+---
+
+### **Deliverables**
+1. The `Share Story` button navigates to the story submission page or triggers the appropriate action (e.g., opening a modal or a new page).
+2. The `Explore` button navigates to the story gallery or displays the appropriate content.
+3. Debugging logs confirm that event listeners are attached and firing correctly.
+4. Routes and backend responses are verified to ensure proper functionality.
+
+---
+
+This prompt provides clear steps for debugging and ensures that both buttons work seamlessly. Let me know if you need further assistance! 🚀

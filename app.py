@@ -153,7 +153,8 @@ def index():
             .all()
         )
 
-        # Add debug logging
+        # Add debug logging for template context
+        app.logger.debug("Index route accessed")
         app.logger.debug(f"Featured stories count: {len(featured_stories)}")
         app.logger.debug(f"Recent stories count: {len(recent_stories)}")
 
@@ -164,7 +165,6 @@ def index():
         )
     except Exception as e:
         app.logger.error(f"Error in index route: {str(e)}")
-        flash("Error loading stories", "error")
         return render_template("index.html", featured_stories=[], recent_stories=[])
 
 @app.route("/register", methods=["GET", "POST"])
@@ -221,6 +221,7 @@ def logout():
 @app.route("/submit", methods=["GET", "POST"])
 @login_required
 def submit_story():
+    """Story submission page"""
     if request.method == "POST":
         title = request.form.get("title")
         content = request.form.get("content")
@@ -240,112 +241,37 @@ def submit_story():
                 title=title,
                 content=content,
                 region=region,
+                theme=theme,
                 user_id=current_user.id,
                 submission_date=datetime.datetime.utcnow()
             )
             db.session.add(story)
             db.session.flush()
 
-            # Handle media upload if provided
-            if "media" in request.files:
-                file = request.files["media"]
-                if file.filename:
-                    try:
-                        file_data = file.read()
-                        if services['storage']:
-                            upload_result = services['storage'].upload_media(file_data)
-                            if upload_result:
-                                story.media_url = upload_result["url"]
-                        else:
-                            logger.error("Storage service is not available")
-                            flash("Error uploading media: Storage service unavailable", "error")
-                    except Exception as e:
-                        logger.error(f"Error uploading media: {str(e)}")
-                        flash("Error uploading media", "error")
-
-            # Generate and store AI image if requested
-            if generate_image and services['image']:
-                try:
-                    logger.info("Generating AI image for story")
-                    image_prompt = f"Create an illustration for '{title}': {content[:200]}..."
-                    image_result = services['image'].generate_image(image_prompt)
-                    if image_result["success"]:
-                        story.generated_image_url = image_result["url"]
-                        logger.info(f"Successfully generated image: {image_result['url']}")
-                    else:
-                        logger.error(f"Failed to generate image: {image_result.get('error')}")
-                        flash("Could not generate AI image: " + image_result.get('error', 'Unknown error'), "warning")
-                except Exception as e:
-                    logger.error(f"Error in image generation process: {str(e)}")
-                    flash("Error generating AI image", "error")
-
-            # Generate and store audio narration if requested
-            if generate_audio and services['audio']:
-                try:
-                    logger.info("Generating audio narration")
-                    audio_result = services['audio'].generate_audio(content)
-                    if audio_result["success"]:
-                        audio_data = audio_result["audio_data"]
-                        if services['storage']:
-                            upload_result = services['storage'].upload_media(
-                                audio_data,
-                                resource_type="audio",
-                                public_id=f"audio_{datetime.datetime.utcnow().timestamp()}"
-                            )
-                            if upload_result and "url" in upload_result:
-                                story.audio_url = upload_result["url"]
-                                logger.info(f"Successfully generated audio: {upload_result['url']}")
-                            else:
-                                logger.error("Failed to upload audio: No URL returned")
-                                flash("Could not save audio narration", "warning")
-                        else:
-                            logger.error("Storage service is not available")
-                            flash("Could not save audio narration: Storage service unavailable", "warning")
-                    else:
-                        logger.error(f"Failed to generate audio: {audio_result.get('error')}")
-                        flash(f"Could not generate audio narration: {audio_result.get('error')}", "warning")
-                except Exception as e:
-                    logger.error(f"Error generating audio: {str(e)}")
-                    flash("Error generating audio narration", "error")
-
-            # Process tags with cultural suggestions
-            if tags_input or content:
+            # Process tags
+            if tags_input:
                 try:
                     user_tags = [t.strip().lower() for t in tags_input.split(',') if t.strip()]
-                    suggested_tags = []
-                    if content and services['tag']:
-                        suggested_tags = services['tag'].suggest_cultural_tags(content, region)
-                    all_tags = list(set(user_tags + suggested_tags))
-                    for tag_name in all_tags:
-                        tag = services['tag'].create_or_get_tag(tag_name)
-                        if tag and tag not in story.tags:
-                            story.tags.append(tag)
+                    for tag_name in user_tags:
+                        tag = Tag.query.filter_by(name=tag_name).first()
+                        if not tag:
+                            tag = Tag(name=tag_name)
+                            db.session.add(tag)
+                        story.tags.append(tag)
                 except Exception as e:
                     logger.error(f"Error processing tags: {str(e)}")
                     flash("Error processing tags", "error")
 
-            # Commit all changes
+            # Commit changes
             try:
                 db.session.commit()
-                logger.info(f"Successfully saved story with ID: {story.id}")
                 flash("Your story has been submitted successfully!", "success")
-
-                # Check for new badges
-                if services['badge']:
-                    new_badges = services['badge'].check_and_award_badges(current_user)
-                    if new_badges:
-                        badge_names = [badge.name for badge in new_badges]
-                        flash(f"Congratulations! You earned new badges: {', '.join(badge_names)}", "success")
-                else:
-                    logger.error("Badge service is not available")
-
+                return redirect(url_for("view_story", story_id=story.id))
             except Exception as e:
                 logger.error(f"Error saving story: {str(e)}")
                 db.session.rollback()
                 flash("Error saving your story", "error")
                 return redirect(url_for("submit_story"))
-
-            return redirect(url_for("gallery"))
 
         except Exception as e:
             logger.error(f"Unexpected error in submit_story: {str(e)}")
@@ -356,21 +282,28 @@ def submit_story():
 
 @app.route("/gallery")
 def gallery():
-    region_filter = request.args.get("region")
-    tag_filter = request.args.get("tag")
+    """Gallery page with story listing"""
+    try:
+        region_filter = request.args.get("region")
+        tag_filter = request.args.get("tag")
 
-    query = Story.query
+        query = Story.query.order_by(Story.submission_date.desc())
 
-    if region_filter:
-        query = query.filter_by(region=region_filter)
+        if region_filter:
+            query = query.filter_by(region=region_filter)
 
-    if tag_filter:
-        query = query.join(Story.tags).filter(Tag.name == tag_filter)
+        if tag_filter:
+            query = query.join(Story.tags).filter(Tag.name == tag_filter)
 
-    stories = query.order_by(Story.submission_date.desc()).all()
-    all_tags = Tag.query.order_by(Tag.name).all()
+        stories = query.all()
+        all_tags = Tag.query.order_by(Tag.name).all()
 
-    return render_template("gallery.html", stories=stories, all_tags=all_tags)
+        app.logger.debug(f"Gallery route accessed - Stories count: {len(stories)}")
+        return render_template("gallery.html", stories=stories, all_tags=all_tags)
+    except Exception as e:
+        logger.error(f"Error in gallery route: {str(e)}")
+        flash("Error loading stories", "error")
+        return render_template("gallery.html", stories=[], all_tags=[])
 
 @app.route("/like/<int:story_id>", methods=["POST"])
 @login_required
