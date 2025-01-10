@@ -95,6 +95,24 @@
                         </div>
                     </div>
 
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="generate_soundtrack" name="generate_soundtrack">
+                            <label class="form-check-label" for="generate_soundtrack">
+                                Generate Background Music
+                            </label>
+                            <small class="form-text text-muted d-block">Creates culturally appropriate background music for your story</small>
+                        </div>
+                    </div>
+
+                    <div id="soundtrackPlayer" class="mb-3 d-none">
+                        <label class="form-label">Background Music Preview</label>
+                        <audio controls class="w-100">
+                            <source src="" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+
                     <div class="text-center">
                         <button type="submit" class="btn btn-primary">Submit Story</button>
                     </div>
@@ -121,6 +139,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const tagSuggestions = document.getElementById('tagSuggestions');
     const generateImageCheckbox = document.getElementById('generate_image');
     const generateAudioCheckbox = document.getElementById('generate_audio');
+    const generateSoundtrackCheckbox = document.getElementById('generate_soundtrack');
+    const soundtrackPlayer = document.getElementById('soundtrackPlayer');
 
     // Add loading overlay
     const loadingOverlay = document.createElement('div');
@@ -328,9 +348,57 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
+    // Function to generate and preview soundtrack
+    const generateSoundtrackPreview = async () => {
+        const content = contentTextarea.value;
+        const region = regionSelect.value;
+        const theme = document.getElementById('theme').value;
+
+        if (!content || !region || !theme) {
+            alert('Please fill in the story content, region, and theme before generating soundtrack.');
+            generateSoundtrackCheckbox.checked = false;
+            return;
+        }
+
+        try {
+            showLoading('Generating background music...');
+            const response = await fetch('/api/generate-soundtrack', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content, region, theme })
+            });
+
+            const data = await response.json();
+            if (data.success && data.audio_url) {
+                const audioPlayer = soundtrackPlayer.querySelector('audio');
+                audioPlayer.src = data.audio_url;
+                soundtrackPlayer.classList.remove('d-none');
+                audioPlayer.load();
+            } else {
+                throw new Error(data.error || 'Failed to generate soundtrack');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while generating the soundtrack. Please try again.');
+            generateSoundtrackCheckbox.checked = false;
+        } finally {
+            hideLoading();
+        }
+    };
+
+    generateSoundtrackCheckbox.addEventListener('change', async function() {
+        if (this.checked) {
+            await generateSoundtrackPreview();
+        } else {
+            soundtrackPlayer.classList.add('d-none');
+        }
+    });
+
     // Form submission handling
     form.addEventListener('submit', async (e) => {
-        if (generateImageCheckbox.checked || generateAudioCheckbox.checked) {
+        if (generateImageCheckbox.checked || generateAudioCheckbox.checked || generateSoundtrackCheckbox.checked) {
             e.preventDefault();
             showLoading('Submitting story and generating media...');
 
@@ -366,6 +434,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
 </script>
 
 <style>

@@ -44,6 +44,7 @@ class Story(db.Model):
     media_url = db.Column(db.String(500))  # URL for uploaded media (Cloudinary)
     generated_image_url = db.Column(db.String(500))  # URL for DALL-E generated image
     audio_url = db.Column(db.String(500))  # URL for ElevenLabs generated audio
+    soundtrack_url = db.Column(db.String(500))  # URL for generated soundtrack
     submission_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     likes = db.relationship('StoryLike', backref='story', lazy=True)

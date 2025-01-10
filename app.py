@@ -134,9 +134,11 @@ def submit_story():
         title = request.form.get("title")
         content = request.form.get("content")
         region = request.form.get("region")
+        theme = request.form.get("theme")
         tags_input = request.form.get("tags", "")
         generate_audio = request.form.get("generate_audio") == "on"
         generate_image = request.form.get("generate_image") == "on"
+        generate_soundtrack = request.form.get("generate_soundtrack") == "on"  # New field
 
         if not all([title, content, region]):
             flash("Please fill in all required fields", "error")
@@ -152,7 +154,7 @@ def submit_story():
                 submission_date=datetime.datetime.utcnow()
             )
             db.session.add(story)
-            db.session.flush()  # Get the story ID without committing
+            db.session.flush()
 
             # Handle media upload if provided
             if "media" in request.files:
@@ -206,6 +208,30 @@ def submit_story():
                 except Exception as e:
                     logger.error(f"Error generating audio: {str(e)}")
                     flash("Error generating audio narration", "error")
+
+            # Generate and store soundtrack if requested
+            if generate_soundtrack:
+                try:
+                    logger.info("Generating soundtrack for story")
+                    soundtrack_data = audio_service.generate_soundtrack(content, region, theme)
+                    if soundtrack_data:
+                        upload_result = storage_service.upload_media(
+                            soundtrack_data,
+                            resource_type="audio",
+                            public_id=f"soundtrack_{datetime.datetime.utcnow().timestamp()}"
+                        )
+                        if upload_result:
+                            story.soundtrack_url = upload_result["url"]
+                            logger.info(f"Successfully generated soundtrack: {upload_result['url']}")
+                        else:
+                            logger.error("Failed to upload soundtrack: No URL returned")
+                            flash("Could not save soundtrack", "warning")
+                    else:
+                        logger.error("Failed to generate soundtrack: No audio data returned")
+                        flash("Could not generate soundtrack", "warning")
+                except Exception as e:
+                    logger.error(f"Error generating soundtrack: {str(e)}")
+                    flash("Error generating soundtrack", "error")
 
             # Process tags with cultural suggestions
             if tags_input or content:  # Check both user tags and story content
@@ -454,4 +480,49 @@ def get_cultural_insights():
 
     except Exception as e:
         logger.error(f"Error getting cultural insights: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/generate-soundtrack", methods=["POST"])
+@login_required
+@cache.memoize(timeout=300)  # Cache soundtracks for 5 minutes
+def generate_soundtrack():
+    """Generate a dynamic soundtrack for a story"""
+    try:
+        data = request.get_json()
+        content = data.get("content")
+        region = data.get("region")
+        theme = data.get("theme")
+
+        if not all([content, region, theme]):
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+
+        # Create cache key based on content preview
+        cache_key = f"soundtrack_{region}_{theme}_{content[:100]}"
+        cached_soundtrack = cache.get(cache_key)
+
+        if cached_soundtrack:
+            logger.info("Returning cached soundtrack")
+            return jsonify({"success": True, "audio_url": cached_soundtrack})
+
+        # Generate the soundtrack
+        soundtrack_data = audio_service.generate_soundtrack(content, region, theme)
+        if soundtrack_data:
+            # Upload soundtrack to storage
+            try:
+                upload_result = storage_service.upload_media(
+                    soundtrack_data,
+                    resource_type="audio",
+                    public_id=f"soundtrack_{datetime.datetime.utcnow().timestamp()}"
+                )
+                if upload_result:
+                    audio_url = upload_result["url"]
+                    cache.set(cache_key, audio_url)
+                    return jsonify({"success": True, "audio_url": audio_url})
+            except Exception as e:
+                logger.error(f"Error uploading soundtrack: {str(e)}")
+
+        return jsonify({"success": False, "error": "Failed to generate soundtrack"}), 500
+
+    except Exception as e:
+        logger.error(f"Error generating soundtrack: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500

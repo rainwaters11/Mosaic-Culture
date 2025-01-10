@@ -2,7 +2,7 @@
 import logging
 import os
 import requests
-from typing import Optional
+from typing import Optional, Dict, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +60,75 @@ class AudioService:
             logger.error(f"Error generating audio: {str(e)}")
             return None
 
+    def generate_soundtrack(self, story_content: str, region: str, theme: str) -> Optional[bytes]:
+        """
+        Generate a dynamic soundtrack based on story content and cultural context
+        Args:
+            story_content: The story text
+            region: Cultural region (e.g., 'Asia', 'Africa')
+            theme: Story theme (e.g., 'Traditions', 'Festivals')
+        Returns the audio data as bytes
+        """
+        try:
+            # Determine appropriate musical style and elements
+            style, mood = self._analyze_musical_context(story_content, region, theme)
+
+            # Generate soundtrack prompt
+            prompt = self._generate_soundtrack_prompt(style, mood)
+
+            # Use a specialized voice for background music generation
+            voice_name = "Antoni"  # Antoni voice works well for musical content
+
+            # Generate the soundtrack
+            soundtrack_data = self.generate_audio(prompt, voice_name)
+            if soundtrack_data:
+                logger.info("Successfully generated soundtrack")
+                return soundtrack_data
+
+            logger.error("Failed to generate soundtrack")
+            return None
+
+        except Exception as e:
+            logger.error(f"Error generating soundtrack: {str(e)}")
+            return None
+
+    def _analyze_musical_context(self, content: str, region: str, theme: str) -> Tuple[str, str]:
+        """Analyze story content to determine appropriate musical style and mood"""
+        # Map regions to traditional musical styles
+        regional_styles = {
+            'Asia': ['traditional asian', 'zen meditation', 'oriental orchestra'],
+            'Africa': ['african drums', 'tribal rhythm', 'savanna ambience'],
+            'Europe': ['classical orchestra', 'folk ensemble', 'medieval ballad'],
+            'Americas': ['indigenous flutes', 'latin rhythm', 'americana'],
+            'Oceania': ['didgeridoo ambient', 'island drums', 'pacific sounds']
+        }
+
+        # Map themes to moods
+        theme_moods = {
+            'Traditions': 'ceremonial and dignified',
+            'Festivals': 'celebratory and joyful',
+            'Food': 'warm and inviting',
+            'Art': 'creative and flowing',
+            'Music': 'rhythmic and melodic',
+            'Folklore': 'mysterious and enchanting'
+        }
+
+        # Select style based on region and theme
+        style = regional_styles.get(region, ['world music'])[0]
+        mood = theme_moods.get(theme, 'neutral and balanced')
+
+        return style, mood
+
+    def _generate_soundtrack_prompt(self, style: str, mood: str) -> str:
+        """Generate a prompt for soundtrack creation"""
+        return (
+            f"Create a gentle {style} background music that feels {mood}. "
+            "The melody should be subtle and suitable for storytelling, "
+            "maintaining cultural authenticity while being universally appealing. "
+            "Include traditional instruments and natural harmonies. "
+            "The piece should be calming and not overpower spoken narration."
+        )
+
     def _get_voice_id(self, voice_name: str) -> Optional[str]:
         """Get the voice ID for a given voice name"""
         try:
@@ -78,10 +147,7 @@ class AudioService:
             return None
 
     def get_available_voices(self) -> list:
-        """
-        Get a list of available voices
-        Returns a list of voice names
-        """
+        """Get a list of available voices"""
         try:
             if not self.api_key:
                 return ["Bella", "Antoni", "Arnold", "Adam", "Domi", "Elli", "Josh"]
