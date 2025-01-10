@@ -1,0 +1,79 @@
+Objective: Resolve the Invalid API key or authentication error issue in the video generation feature. Ensure the API key is correctly set up and authenticated. Follow these steps:
+
+1. Verify the API Key
+Check that the API key is valid:
+Confirm the API key in use matches the one provided by the video generation API service (e.g., RunwayML).
+If necessary, regenerate a new API key from the provider’s dashboard and replace the existing one.
+2. Confirm API Key Usage
+Ensure the API key is included correctly in the request headers:
+python
+Copy code
+headers = {
+    "Authorization": "Bearer YOUR_API_KEY",
+    "Content-Type": "application/json"
+}
+Log the headers to verify the API key is being passed:
+python
+Copy code
+print("Authorization Header:", headers["Authorization"])
+3. Check Environment Variables
+Ensure the API key is securely stored and loaded via environment variables.
+Verify in Replit that the API key is correctly set in the .env file:
+plaintext
+Copy code
+API_KEY=your_actual_api_key
+Access the environment variable in the code:
+python
+Copy code
+import os
+api_key = os.getenv("API_KEY")
+print("Loaded API Key:", api_key)
+If the API key is not loading, ensure Replit's environment variable feature is properly configured.
+4. Validate Backend API Request
+Ensure the backend properly forwards the API key to the external service:
+python
+Copy code
+response = requests.post(
+    "https://api.runwayml.com/v1/videos/generate",
+    headers={
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    },
+    json={
+        "title": "Test Video",
+        "description": "Sample description",
+        "duration": 10
+    }
+)
+print("Response Status Code:", response.status_code)
+print("Response Content:", response.text)
+5. Debug Possible API Restrictions
+Verify the API key has the necessary permissions:
+Check if the key is restricted to certain IPs or domains.
+Ensure the key has access to the /v1/videos/generate endpoint.
+If using a trial account or quota-limited plan, ensure the key has sufficient credits or access.
+6. Test Authentication Independently
+Use a tool like Postman or curl to test the API key:
+bash
+Copy code
+curl -X POST https://api.runwayml.com/v1/videos/generate \
+-H "Authorization: Bearer YOUR_API_KEY" \
+-H "Content-Type: application/json" \
+-d '{"title": "Test Video", "description": "Sample description", "duration": 10}'
+If the test succeeds, the issue lies in the app's request logic.
+If the test fails, consult the API documentation or provider support.
+7. Implement Clear Error Handling
+Add error handling to inform users of invalid credentials:
+python
+Copy code
+if response.status_code == 401:
+    return {"error": "Invalid API key. Please check your credentials."}
+Log the full response for debugging:
+python
+Copy code
+print("Error Response:", response.json())
+Deliverables
+API key verified and properly configured.
+Backend successfully authenticates with the video generation API.
+Clear error handling for invalid or missing API keys.
+Logs to monitor and troubleshoot future authentication issues.

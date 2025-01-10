@@ -1,8 +1,11 @@
 """Video generation service using RunwayML"""
 import os
 import logging
+import time
 from typing import Optional, Dict, Union
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 logger = logging.getLogger(__name__)
 
@@ -10,26 +13,58 @@ class VideoService:
     def __init__(self):
         """Initialize video generation service"""
         self.api_key = os.environ.get('RUNWAYML_API_KEY')
-        # Base URL for RunwayML API
         self.api_url = "https://api.runwayml.com"
         self.is_available = bool(self.api_key)
 
         if not self.is_available:
             logger.error("RUNWAYML_API_KEY environment variable is not set")
-        else:
-            # Validate API key format
-            if not self._validate_api_key():
-                logger.error("Invalid RunwayML API key format")
+            return
+
+        # Configure session with retries
+        self.session = requests.Session()
+        retries = Retry(
+            total=3,
+            backoff_factor=0.5,
+            status_forcelist=[500, 502, 503, 504]
+        )
+        self.session.mount('https://', HTTPAdapter(max_retries=retries))
+
+        try:
+            # Validate API key by making a test request
+            headers = self._get_headers()
+            response = self.session.get(
+                f"{self.api_url}/v1/user",
+                headers=headers,
+                timeout=10
+            )
+
+            if response.status_code == 200:
+                logger.info("Video service initialized successfully")
+            elif response.status_code == 401:
+                logger.error("Invalid RunwayML API key. Please check your credentials.")
                 self.is_available = False
             else:
-                logger.info("Video service initialized successfully")
+                logger.error(f"Failed to validate RunwayML API key: {response.text}")
+                self.is_available = False
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to initialize RunwayML: {str(e)}")
+            self.is_available = False
 
-    def _validate_api_key(self) -> bool:
-        """Validate the API key format"""
-        if not self.api_key:
-            return False
-        # RunwayML API keys are typically non-empty strings
-        return len(self.api_key.strip()) > 0
+    def _get_headers(self) -> Dict[str, str]:
+        """Get headers with proper authentication"""
+        return {
+            "Authorization": f"Key {self.api_key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+
+    def _validate_request_params(self, title: str, description: str, duration: int) -> Optional[str]:
+        """Validate request parameters"""
+        if not title or not description:
+            return "Title and description are required"
+        if duration < 5 or duration > 60:
+            return "Duration must be between 5 and 60 seconds"
+        return None
 
     def generate_video(self, title: str, description: str, duration: int = 15) -> Dict[str, Union[bool, str]]:
         """
@@ -47,6 +82,14 @@ class VideoService:
                 "error": "Video service is not properly configured"
             }
 
+        # Validate request parameters
+        validation_error = self._validate_request_params(title, description, duration)
+        if validation_error:
+            return {
+                "success": False,
+                "error": validation_error
+            }
+
         try:
             # Format prompt for better video generation
             prompt = f"{title}\n\nDescription: {description}"
@@ -62,11 +105,7 @@ class VideoService:
                 "height": 576
             }
 
-            headers = {
-                "Authorization": f"Key {self.api_key}",  # Updated auth header format
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
+            headers = self._get_headers()
 
             # Make the API request to Gen-2 video generation endpoint
             endpoint = f"{self.api_url}/v1/generations"
@@ -74,12 +113,14 @@ class VideoService:
             logger.debug(f"Using endpoint: {endpoint}")
             logger.debug(f"Request payload: {payload}")
 
-            response = requests.post(
+            start_time = time.time()
+            response = self.session.post(
                 endpoint,
                 json=payload,
                 headers=headers,
                 timeout=120  # Increased timeout for video generation
             )
+            logger.debug(f"Request took {time.time() - start_time:.2f} seconds")
 
             # Log the response status and content for debugging
             logger.debug(f"Response status: {response.status_code}")
