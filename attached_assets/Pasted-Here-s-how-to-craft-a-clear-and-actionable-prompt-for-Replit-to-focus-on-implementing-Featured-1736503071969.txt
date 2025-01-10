@@ -1,0 +1,125 @@
+Here’s how to craft a clear and actionable prompt for **Replit** to focus on implementing **Featured Stories** and connecting them to a specific component, such as user-generated content, a gallery, or a recommendation engine:
+
+---
+
+### **Prompt for Replit: Implement Featured Stories**
+> **Objective**: Implement a `Featured Stories` section in the Mosaic Culture app and connect it to a relevant component, such as user-generated content or recommendations. Follow these steps to ensure proper functionality and integration:
+>
+> ### **1. Create a Featured Stories Section**
+> - Add a dedicated section on the homepage or gallery page for `Featured Stories`.
+> - Display up to **5 featured stories** with the following attributes:
+>   - Title
+>   - Story description (excerpt if long)
+>   - Image or video thumbnail (if available)
+>   - Author’s name (if applicable)
+>
+> Example Layout:
+> ```html
+> <section id="featured-stories">
+>   <h2>Featured Stories</h2>
+>   <div class="story-card">
+>     <img src="story-thumbnail.jpg" alt="Story Thumbnail">
+>     <h3>Story Title</h3>
+>     <p>Story excerpt goes here...</p>
+>     <button>Read More</button>
+>   </div>
+> </section>
+> ```
+
+---
+
+> ### **2. Backend Setup**
+> - Create a backend API route to fetch featured stories from the database:
+> ```python
+> @app.route('/api/featured-stories', methods=['GET'])
+> def get_featured_stories():
+>     # Example data structure
+>     stories = [
+>         {"id": 1, "title": "A Harvest Moon Dance", "excerpt": "A story of gratitude and tradition...", "thumbnail": "url-to-image", "author": "Aiyana"},
+>         {"id": 2, "title": "Sweetgrass Baskets", "excerpt": "Crafting resilience through generations...", "thumbnail": "url-to-image", "author": "Jamal"}
+>     ]
+>     return jsonify(stories)
+> ```
+
+---
+
+> ### **3. Connect Featured Stories to User-Generated Content**
+> - Define criteria for marking stories as featured:
+>   - Most liked or most viewed stories.
+>   - Curated stories flagged by an admin.
+>   - Stories tagged with specific themes (e.g., “Celebration” or “Resilience”).
+> - Example logic to filter featured stories:
+> ```python
+> def get_featured_stories():
+>     all_stories = db.get_all_stories()
+>     featured_stories = [story for story in all_stories if story['likes'] > 50 or 'featured' in story['tags']]
+>     return featured_stories
+> ```
+
+---
+
+> ### **4. Display Featured Stories on the Frontend**
+> - Fetch featured stories from the backend API and display them dynamically:
+> ```javascript
+> fetch('/api/featured-stories')
+>   .then(response => response.json())
+>   .then(data => {
+>     const featuredSection = document.getElementById('featured-stories');
+>     data.forEach(story => {
+>       const storyCard = `
+>         <div class="story-card">
+>           <img src="${story.thumbnail}" alt="${story.title}">
+>           <h3>${story.title}</h3>
+>           <p>${story.excerpt}</p>
+>           <button onclick="viewStory(${story.id})">Read More</button>
+>         </div>`;
+>       featuredSection.innerHTML += storyCard;
+>     });
+>   });
+> ```
+
+---
+
+> ### **5. Integrate Recommendations or Admin Curation**
+> - Option 1: **Recommendations**:
+>   - Use tags, user preferences, or AI to recommend stories for featuring.
+>   - Example: Recommend based on stories a user has liked.
+> - Option 2: **Admin Curation**:
+>   - Add an admin panel for marking stories as featured.
+>   - Example API route:
+>   ```python
+>   @app.route('/api/mark-featured/<story_id>', methods=['POST'])
+>   def mark_as_featured(story_id):
+>       story = db.get_story(story_id)
+>       story['tags'].append('featured')
+>       db.update_story(story_id, story)
+>       return {"message": "Story marked as featured"}
+>   ```
+
+---
+
+> ### **6. Test and Debug**
+> - Ensure featured stories:
+>   - Appear correctly in the UI.
+>   - Are dynamically updated based on the criteria or admin curation.
+> - Test edge cases, such as:
+>   - No featured stories available.
+>   - Slow API response.
+>   - Missing or incorrect story attributes.
+
+---
+
+> ### **Deliverables**
+> - A fully functional `Featured Stories` section connected to user-generated content or a recommendation system.
+> - Admin or automated logic for curating featured stories.
+> - Dynamic frontend display of featured stories.
+
+---
+
+### **Why This Works**
+This prompt:
+1. **Focuses on Functionality**: Guides Replit to implement and connect featured stories effectively.
+2. **Defines Clear Steps**: Includes backend, frontend, and logic integration.
+3. **Ensures Testing**: Emphasizes debugging and edge case handling.
+
+Let me know if you’d like help refining the logic or adding related features!

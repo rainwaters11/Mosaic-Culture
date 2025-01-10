@@ -51,6 +51,26 @@ class Story(db.Model):
     comments = db.relationship('Comment', backref='story', lazy=True)
     tags = db.relationship('Tag', secondary=story_tags, lazy='subquery',
         backref=db.backref('stories', lazy=True))
+    is_featured = db.Column(db.Boolean, default=False)  # New column for featured status
+    featured_date = db.Column(db.DateTime)  # New column to track when story was featured
+
+    @classmethod
+    def get_featured_stories(cls, limit=5):
+        """Get the most recent featured stories"""
+        return cls.query.filter_by(is_featured=True)\
+                      .order_by(cls.featured_date.desc())\
+                      .limit(limit)\
+                      .all()
+
+    @classmethod
+    def get_trending_stories(cls, limit=5):
+        """Get stories with the most engagement (likes + comments)"""
+        return cls.query\
+            .join(StoryLike)\
+            .group_by(Story.id)\
+            .order_by(db.func.count(StoryLike.id).desc())\
+            .limit(limit)\
+            .all()
 
 class Tag(db.Model):
     __tablename__ = 'tags'

@@ -12,33 +12,71 @@
 <div class="featured-stories mt-5">
     <h2 class="text-center mb-4">Featured Stories</h2>
     <div class="row">
-        <div class="col-md-4">
-            <div class="card">
-                <img src="https://images.unsplash.com/photo-1720238281139-2a33162cca1a" class="card-img-top" alt="Cultural Diversity">
+        {% for story in featured_stories %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 scale-in">
+                {% if story.generated_image_url or story.media_url %}
+                <img src="{{ story.generated_image_url or story.media_url }}" 
+                     class="card-img-top" 
+                     alt="{{ story.title }}">
+                {% endif %}
                 <div class="card-body">
-                    <h5 class="card-title">Global Traditions</h5>
-                    <p class="card-text">Discover stories from around the world that showcase our rich cultural heritage.</p>
+                    <h5 class="card-title">{{ story.title }}</h5>
+                    <p class="card-text">{{ story.content[:200] }}...</p>
+                    <div class="story-meta">
+                        <span class="badge bg-secondary">{{ story.region }}</span>
+                        <small class="text-muted">By {{ story.author.username }} on {{ story.submission_date.strftime('%B %d, %Y') }}</small>
+                    </div>
+                    {% if story.tags %}
+                    <div class="story-tags mt-2">
+                        {% for tag in story.tags %}
+                        <a href="{{ url_for('gallery', tag=tag.name) }}" 
+                           class="badge bg-light text-dark text-decoration-none">
+                            #{{ tag.name }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    <div class="mt-3">
+                        <a href="{{ url_for('view_story', story_id=story.id) }}" 
+                           class="btn btn-outline-primary">Read More</a>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card">
-                <img src="https://images.unsplash.com/photo-1730315989960-24c8d31d41dd" class="card-img-top" alt="Storytelling">
+        {% endfor %}
+    </div>
+</div>
+
+<div class="trending-stories mt-5">
+    <h2 class="text-center mb-4">Trending Stories</h2>
+    <div class="row">
+        {% for story in trending_stories %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 fade-in">
+                {% if story.generated_image_url or story.media_url %}
+                <img src="{{ story.generated_image_url or story.media_url }}" 
+                     class="card-img-top" 
+                     alt="{{ story.title }}">
+                {% endif %}
                 <div class="card-body">
-                    <h5 class="card-title">Personal Stories</h5>
-                    <p class="card-text">Share your unique perspective and personal experiences with our community.</p>
+                    <h5 class="card-title">{{ story.title }}</h5>
+                    <p class="card-text">{{ story.content[:200] }}...</p>
+                    <div class="story-meta">
+                        <span class="badge bg-secondary">{{ story.region }}</span>
+                        <small class="text-muted">
+                            <i class="fas fa-heart text-danger"></i> {{ story.likes|length }}
+                            <i class="fas fa-comment ms-2"></i> {{ story.comments|length }}
+                        </small>
+                    </div>
+                    <div class="mt-3">
+                        <a href="{{ url_for('view_story', story_id=story.id) }}" 
+                           class="btn btn-outline-primary">Read More</a>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card">
-                <img src="https://images.unsplash.com/photo-1690310456730-0a3a81d8a3af" class="card-img-top" alt="Cultural Traditions">
-                <div class="card-body">
-                    <h5 class="card-title">Cultural Heritage</h5>
-                    <p class="card-text">Preserve and celebrate the traditions that make our cultures unique.</p>
-                </div>
-            </div>
-        </div>
+        {% endfor %}
     </div>
 </div>
 {% endblock %}
