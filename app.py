@@ -142,7 +142,17 @@ with app.app_context():
 
 @login_manager.user_loader
 def load_user(id):
-    return User.query.get(int(id))
+    try:
+        # Use a fresh session for user loading to avoid transaction issues
+        with db.session.begin():
+            user = User.query.get(int(id))
+            if user:
+                db.session.expunge(user)
+            return user
+    except Exception as e:
+        logger.error(f"Error loading user: {str(e)}")
+        db.session.rollback()
+        return None
 
 @app.route("/")
 def index():
