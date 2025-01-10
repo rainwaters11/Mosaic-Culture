@@ -318,10 +318,28 @@ def generate_story():
 
         generated_content = story_service.generate_story(title, theme, region)
         if generated_content:
-            return jsonify({
-                "success": True,
-                "content": generated_content["content"]
-            })
+            # Include sensitivity analysis in response
+            sensitivity_analysis = generated_content.get("sensitivity_analysis")
+            try:
+                import json
+                analysis = json.loads(sensitivity_analysis) if sensitivity_analysis else {}
+
+                return jsonify({
+                    "success": True,
+                    "content": generated_content["content"],
+                    "sensitivity": {
+                        "rating": analysis.get("overall_rating", 0),
+                        "positive_aspects": analysis.get("positive_aspects", []),
+                        "suggestions": analysis.get("improvement_suggestions", ""),
+                        "issues": analysis.get("issues", [])
+                    }
+                })
+            except Exception as e:
+                logger.error(f"Error parsing sensitivity analysis: {str(e)}")
+                return jsonify({
+                    "success": True,
+                    "content": generated_content["content"]
+                })
         else:
             return jsonify({"success": False, "error": "Failed to generate story"}), 500
 
