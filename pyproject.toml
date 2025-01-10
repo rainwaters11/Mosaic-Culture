@@ -21,4 +21,5 @@ dependencies = [
     "ebooklib>=0.18",
     "markdown2>=2.5.2",
     "weasyprint>=63.1",
+    "flask-migrate>=4.1.0",
 ]

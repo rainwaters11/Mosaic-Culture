@@ -1,5 +1,6 @@
 import os
 import logging
+from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required
 from flask_caching import Cache
@@ -7,15 +8,7 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
 from database import db
-from services.audio_service import AudioService
-from services.image_service import ImageService
-from services.storage_service import StorageService
-from services.badge_service import BadgeService
-from services.story_service import StoryService
-from services.tag_service import TagService
-from services.cultural_context_service import CulturalContextService
-from services.export_service import ExportService
-from functools import wraps
+from services.service_registry import service_registry
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -27,6 +20,9 @@ app = Flask(__name__)
 # App configuration
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "a secret key"
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+if app.config["SQLALCHEMY_DATABASE_URI"] and app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgres://"):
+    app.config["SQLALCHEMY_DATABASE_URI"] = app.config["SQLALCHEMY_DATABASE_URI"].replace("postgres://", "postgresql://", 1)
+
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
@@ -36,7 +32,7 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
 
 # Configure caching
 app.config["CACHE_TYPE"] = "simple"
-app.config["CACHE_DEFAULT_TIMEOUT"] = 300  # 5 minutes default cache timeout
+app.config["CACHE_DEFAULT_TIMEOUT"] = 300
 cache = Cache(app)
 
 # Initialize extensions
@@ -51,81 +47,51 @@ os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 # Initialize services
 def init_services():
     """Initialize all services and handle any initialization errors gracefully"""
-    services = {}
     try:
-        services['audio'] = AudioService()
-        logger.info("Audio service initialized")
+        from services.audio_service import AudioService
+        from services.image_service import ImageService
+        from services.storage_service import StorageService
+        from services.badge_service import BadgeService
+        from services.story_service import StoryService
+        from services.tag_service import TagService
+        from services.cultural_context_service import CulturalContextService
+        from services.export_service import ExportService
+
+        # Register all services
+        service_registry.register_service('audio', AudioService)
+        service_registry.register_service('image', ImageService)
+        service_registry.register_service('storage', StorageService)
+        service_registry.register_service('badge', BadgeService)
+        service_registry.register_service('story', StoryService)
+        service_registry.register_service('tag', TagService)
+        service_registry.register_service('cultural_context', CulturalContextService)
+        service_registry.register_service('export', ExportService)
+
+        logger.info("All services registered")
     except Exception as e:
-        logger.error(f"Error initializing audio service: {str(e)}")
-        services['audio'] = None
-
-    try:
-        services['image'] = ImageService()
-        logger.info("Image service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing image service: {str(e)}")
-        services['image'] = None
-
-    try:
-        services['storage'] = StorageService()
-        logger.info("Storage service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing storage service: {str(e)}")
-        services['storage'] = None
-
-    try:
-        services['badge'] = BadgeService()
-        logger.info("Badge service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing badge service: {str(e)}")
-        services['badge'] = None
-
-    try:
-        services['story'] = StoryService()
-        logger.info("Story service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing story service: {str(e)}")
-        services['story'] = None
-
-    try:
-        services['tag'] = TagService()
-        logger.info("Tag service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing tag service: {str(e)}")
-        services['tag'] = None
-
-    try:
-        services['cultural_context'] = CulturalContextService()
-        logger.info("Cultural context service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing cultural context service: {str(e)}")
-        services['cultural_context'] = None
-
-    try:
-        services['export'] = ExportService()
-        logger.info("Export service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing export service: {str(e)}")
-        services['export'] = None
-
-    return services
-
-# Initialize all services
-services = init_services()
+        logger.error(f"Error initializing services: {str(e)}")
 
 # Import models after db initialization
-from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge, EmojiReaction
+try:
+    from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge, EmojiReaction
+except Exception as e:
+    logger.error(f"Error importing models: {str(e)}")
+    raise
+
+# Initialize all services
+init_services()
 
 # Initialize database and create default badges
-logger.info("Initializing database and default badges...")
 with app.app_context():
     try:
         db.create_all()
-        if services['badge']:
-            services['badge'].initialize_default_badges()
-        logger.info("Database and badges initialized successfully")
+        badge_service = service_registry.get_service('badge')
+        if badge_service and badge_service.is_available:
+            badge_service.initialize_default_badges()
+            logger.info("Database and badges initialized successfully")
     except Exception as e:
         logger.error(f"Error initializing database: {str(e)}")
+        raise
 
 @login_manager.user_loader
 def load_user(id):
@@ -252,8 +218,9 @@ def submit_story():
                 if file.filename:
                     try:
                         file_data = file.read()
-                        if services['storage']:
-                            upload_result = services['storage'].upload_media(file_data)
+                        storage_service = service_registry.get_service('storage')
+                        if storage_service and storage_service.is_available:
+                            upload_result = storage_service.upload_media(file_data)
                             if upload_result:
                                 story.media_url = upload_result["url"]
                         else:
@@ -264,60 +231,66 @@ def submit_story():
                         flash("Error uploading media", "error")
 
             # Generate and store AI image if requested
-            if generate_image and services['image']:
-                try:
-                    logger.info("Generating AI image for story")
-                    image_prompt = f"Create an illustration for '{title}': {content[:200]}..."
-                    image_result = services['image'].generate_image(image_prompt)
-                    if image_result["success"]:
-                        story.generated_image_url = image_result["url"]
-                        logger.info(f"Successfully generated image: {image_result['url']}")
-                    else:
-                        logger.error(f"Failed to generate image: {image_result.get('error')}")
-                        flash("Could not generate AI image: " + image_result.get('error', 'Unknown error'), "warning")
-                except Exception as e:
-                    logger.error(f"Error in image generation process: {str(e)}")
-                    flash("Error generating AI image", "error")
+            if generate_image:
+                image_service = service_registry.get_service('image')
+                if image_service and image_service.is_available:
+                    try:
+                        logger.info("Generating AI image for story")
+                        image_prompt = f"Create an illustration for '{title}': {content[:200]}..."
+                        image_result = image_service.generate_image(image_prompt)
+                        if image_result["success"]:
+                            story.generated_image_url = image_result["url"]
+                            logger.info(f"Successfully generated image: {image_result['url']}")
+                        else:
+                            logger.error(f"Failed to generate image: {image_result.get('error')}")
+                            flash("Could not generate AI image: " + image_result.get('error', 'Unknown error'), "warning")
+                    except Exception as e:
+                        logger.error(f"Error in image generation process: {str(e)}")
+                        flash("Error generating AI image", "error")
 
             # Generate and store audio narration if requested
-            if generate_audio and services['audio']:
-                try:
-                    logger.info("Generating audio narration")
-                    audio_result = services['audio'].generate_audio(content)
-                    if audio_result["success"]:
-                        audio_data = audio_result["audio_data"]
-                        if services['storage']:
-                            upload_result = services['storage'].upload_media(
-                                audio_data,
-                                resource_type="audio",
-                                public_id=f"audio_{datetime.datetime.utcnow().timestamp()}"
-                            )
-                            if upload_result and "url" in upload_result:
-                                story.audio_url = upload_result["url"]
-                                logger.info(f"Successfully generated audio: {upload_result['url']}")
+            if generate_audio:
+                audio_service = service_registry.get_service('audio')
+                if audio_service and audio_service.is_available:
+                    try:
+                        logger.info("Generating audio narration")
+                        audio_result = audio_service.generate_audio(content)
+                        if audio_result["success"]:
+                            audio_data = audio_result["audio_data"]
+                            storage_service = service_registry.get_service('storage')
+                            if storage_service and storage_service.is_available:
+                                upload_result = storage_service.upload_media(
+                                    audio_data,
+                                    resource_type="audio",
+                                    public_id=f"audio_{datetime.datetime.utcnow().timestamp()}"
+                                )
+                                if upload_result and "url" in upload_result:
+                                    story.audio_url = upload_result["url"]
+                                    logger.info(f"Successfully generated audio: {upload_result['url']}")
+                                else:
+                                    logger.error("Failed to upload audio: No URL returned")
+                                    flash("Could not save audio narration", "warning")
                             else:
-                                logger.error("Failed to upload audio: No URL returned")
-                                flash("Could not save audio narration", "warning")
+                                logger.error("Storage service is not available")
+                                flash("Could not save audio narration: Storage service unavailable", "warning")
                         else:
-                            logger.error("Storage service is not available")
-                            flash("Could not save audio narration: Storage service unavailable", "warning")
-                    else:
-                        logger.error(f"Failed to generate audio: {audio_result.get('error')}")
-                        flash(f"Could not generate audio narration: {audio_result.get('error')}", "warning")
-                except Exception as e:
-                    logger.error(f"Error generating audio: {str(e)}")
-                    flash("Error generating audio narration", "error")
+                            logger.error(f"Failed to generate audio: {audio_result.get('error')}")
+                            flash(f"Could not generate audio narration: {audio_result.get('error')}", "warning")
+                    except Exception as e:
+                        logger.error(f"Error generating audio: {str(e)}")
+                        flash("Error generating audio narration", "error")
 
             # Process tags with cultural suggestions
             if tags_input or content:
                 try:
                     user_tags = [t.strip().lower() for t in tags_input.split(',') if t.strip()]
                     suggested_tags = []
-                    if content and services['tag']:
-                        suggested_tags = services['tag'].suggest_cultural_tags(content, region)
+                    tag_service = service_registry.get_service('tag')
+                    if content and tag_service and tag_service.is_available:
+                        suggested_tags = tag_service.suggest_cultural_tags(content, region)
                     all_tags = list(set(user_tags + suggested_tags))
                     for tag_name in all_tags:
-                        tag = services['tag'].create_or_get_tag(tag_name)
+                        tag = tag_service.create_or_get_tag(tag_name)
                         if tag and tag not in story.tags:
                             story.tags.append(tag)
                 except Exception as e:
@@ -331,8 +304,9 @@ def submit_story():
                 flash("Your story has been submitted successfully!", "success")
 
                 # Check for new badges
-                if services['badge']:
-                    new_badges = services['badge'].check_and_award_badges(current_user)
+                badge_service = service_registry.get_service('badge')
+                if badge_service and badge_service.is_available:
+                    new_badges = badge_service.check_and_award_badges(current_user)
                     if new_badges:
                         badge_names = [badge.name for badge in new_badges]
                         flash(f"Congratulations! You earned new badges: {', '.join(badge_names)}", "success")
@@ -536,8 +510,9 @@ def generate_story():
         if not all([title, theme, region]):
             return jsonify({"success": False, "error": "Missing required fields"}), 400
 
-        if services['story']:
-            generated_content = services['story'].generate_story(title, theme, region)
+        story_service = service_registry.get_service('story')
+        if story_service and story_service.is_available:
+            generated_content = story_service.generate_story(title, theme, region)
             if generated_content:
                 try:
                     import json
@@ -600,8 +575,9 @@ def suggest_tags():
                 "tags": cached_tags
             })
 
-        if services['tag']:
-            suggested_tags = services['tag'].suggest_cultural_tags(content, region)
+        tag_service = service_registry.get_service('tag')
+        if tag_service and tag_service.is_available:
+            suggested_tags = tag_service.suggest_cultural_tags(content, region)
             cache.set(cache_key, suggested_tags)
             return jsonify({
                 "success": True,
@@ -638,12 +614,13 @@ def get_cultural_insights():
             logger.info("Returning cached cultural insights")
             return jsonify(cached_insights)
 
-        if services['cultural_context']:
+        cultural_context_service = service_registry.get_service('cultural_context')
+        if cultural_context_service and cultural_context_service.is_available:
             # Get cultural insights
-            insights = services['cultural_context'].analyze_context(content, region, theme)
+            insights = cultural_context_service.analyze_context(content, region, theme)
             if insights["success"]:
                 # Get additional learning resources
-                resources = services['cultural_context'].get_learning_resources(content, region)
+                resources = cultural_context_service.get_learning_resources(content, region)
                 if resources["success"]:
                     insights["resources"] = resources["resources"]
 
@@ -663,7 +640,8 @@ def get_cultural_insights():
 @login_required
 def generate_audio():
     """API endpoint to generate audio narration using ElevenLabs"""
-    if not services['audio'] or not services['audio'].is_available:
+    audio_service = service_registry.get_service('audio')
+    if not audio_service or not audio_service.is_available:
         return jsonify({
             "success": False,
             "error": "Audio service is not available. Please check if ElevenLabs API key is configured."
@@ -681,14 +659,15 @@ def generate_audio():
             }), 400
 
         # Generate audio
-        audio_result = services['audio'].generate_audio(content, voice_name)
+        audio_result = audio_service.generate_audio(content, voice_name)
 
         if audio_result["success"]:
             # Upload the audio file
             try:
                 audio_data = audio_result["audio_data"]
-                if services['storage']:
-                    upload_result = services['storage'].upload_media(
+                storage_service = service_registry.get_service('storage')
+                if storage_service and storage_service.is_available:
+                    upload_result = storage_service.upload_media(
                         audio_data,
                         resource_type="audio",
                         public_id=f"audio_{datetime.datetime.utcnow().timestamp()}"
@@ -743,9 +722,10 @@ def generate_image():
         image_prompt = f"Create an illustration for '{title}': {content[:200]}..."
         logger.info(f"Generating image with prompt: {image_prompt}")
 
-        if services['image']:
+        image_service = service_registry.get_service('image')
+        if image_service and image_service.is_available:
             # Generate image
-            image_result = services['image'].generate_image(image_prompt)
+            image_result = image_service.generate_image(image_prompt)
 
             if image_result["success"]:
                 logger.info(f"Successfully generated image: {image_result['url']}")
@@ -788,19 +768,20 @@ def export_story(story_id, format):
         flash("You don't have permission to export this story", "error")
         return redirect(url_for('view_story', story_id=story_id))
 
-    if not services['export']:
+    export_service = service_registry.get_service('export')
+    if not export_service or not export_service.is_available:
         flash("Export service is not available", "error")
         return redirect(url_for('view_story', story_id=story_id))
 
     try:
         if format == 'pdf':
-            file_path = services['export'].export_to_pdf(story)
+            file_path = export_service.export_to_pdf(story)
             mime_type = 'application/pdf'
         elif format == 'epub':
-            file_path = services['export'].export_to_epub(story)
+            file_path = export_service.export_to_epub(story)
             mime_type = 'application/epub+zip'
         elif format == 'txt':
-            file_path = services['export'].export_to_txt(story)
+            file_path = export_service.export_to_txt(story)
             mime_type = 'text/plain'
         else:
             flash("Unsupported export format", "error")
