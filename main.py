@@ -39,8 +39,15 @@ def main():
             return
 
         logger.info("Starting Flask server...")
-        port = int(os.environ.get("PORT", 5000))
+        # Use port 3000 as default to avoid conflicts with other services
+        port = int(os.environ.get("PORT", 3000))
         app.run(host="0.0.0.0", port=port, debug=True)
+    except OSError as e:
+        if "Address already in use" in str(e):
+            logger.error(f"Port {port} is already in use. Please specify a different port using the PORT environment variable.")
+        else:
+            logger.error(f"Failed to start server: {str(e)}")
+        raise
     except Exception as e:
         logger.error(f"Failed to start server: {str(e)}")
         raise
