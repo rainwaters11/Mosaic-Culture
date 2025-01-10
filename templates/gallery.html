@@ -35,19 +35,25 @@
     <div class="col-md-6 col-lg-4 mb-4">
         <div class="card h-100 fade-in">
             {% if story.media_url %}
-            <img src="{{ story.media_url }}" class="card-img-top" alt="{{ story.title }}">
+            <a href="#" class="story-preview-trigger"
+               data-title="{{ story.title }}"
+               data-image="{{ story.media_url }}"
+               data-region="{{ story.region }}"
+               data-author="By {{ story.author.username }} on {{ story.submission_date.strftime('%B %d, %Y') }}"
+               data-excerpt="{{ story.content[:300] }}..."
+               data-url="{{ url_for('view_story', story_id=story.id) }}"
+               data-likes="{{ story.likes|length }}"
+               data-comments="{{ story.comments|length }}"
+               data-tags="{{ story.tags|map(attribute='name')|list|tojson }}">
+                <img src="{{ story.media_url }}" class="card-img-top" alt="{{ story.title }}">
+            </a>
             {% endif %}
             <div class="card-body">
                 <h5 class="card-title">{{ story.title }}</h5>
                 <p class="card-text">{{ story.content[:200] }}...</p>
                 <div class="story-meta">
                     <span class="badge bg-secondary">{{ story.region }}</span>
-                    <small class="text-muted d-block mt-2">
-                        By {{ story.author.username }}
-                        {% if story.submission_date %}
-                            on {{ story.submission_date.strftime('%B %d, %Y') }}
-                        {% endif %}
-                    </small>
+                    <small class="text-muted d-block mt-2">By {{ story.author.username }} on {{ story.submission_date.strftime('%B %d, %Y') }}</small>
                 </div>
 
                 {% if story.tags %}
@@ -74,8 +80,9 @@
                     </a>
                     {% endif %}
 
-                    <button class="btn btn-sm btn-outline-secondary" onclick="shareStory({{ story.id }}, '{{ story.title }}')">
-                        <i class="fas fa-share-alt"></i> Share
+                    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#comments-{{ story.id }}">
+                        <i class="fas fa-comment"></i> 
+                        Comments ({{ story.comments|length }})
                     </button>
 
                     <a href="{{ url_for('view_story', story_id=story.id) }}" 
@@ -83,69 +90,34 @@
                         Read More
                     </a>
                 </div>
+
+                <div class="collapse mt-3" id="comments-{{ story.id }}">
+                    <div class="card card-body">
+                        {% if current_user.is_authenticated %}
+                        <form action="{{ url_for('add_comment', story_id=story.id) }}" method="POST" class="mb-3">
+                            <div class="input-group">
+                                <input type="text" name="content" class="form-control" placeholder="Add a comment...">
+                                <button type="submit" class="btn btn-primary">Send</button>
+                            </div>
+                        </form>
+                        {% endif %}
+
+                        <div class="comments-section">
+                            {% for comment in story.comments if not comment.parent_id %}
+                            <div class="comment mb-3">
+                                <div class="comment-content">
+                                    <strong>{{ comment.author.username }}</strong>
+                                    <small class="text-muted">{{ comment.timestamp.strftime('%B %d, %Y %H:%M') }}</small>
+                                    <p class="mb-1">{{ comment.content }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     {% endfor %}
 </div>
-
-<!-- Share Story Modal -->
-<div class="modal fade" id="shareModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Share Story</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="share-buttons">
-                    <button class="btn btn-outline-info w-100 mb-2" 
-                            onclick="shareOn('twitter')">
-                        <i class="fab fa-twitter me-2"></i>Share on Twitter
-                    </button>
-                    <button class="btn btn-outline-primary w-100 mb-2" 
-                            onclick="shareOn('facebook')">
-                        <i class="fab fa-facebook me-2"></i>Share on Facebook
-                    </button>
-                    <button class="btn btn-outline-secondary w-100" 
-                            onclick="shareOn('linkedin')">
-                        <i class="fab fa-linkedin me-2"></i>Share on LinkedIn
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-let currentStoryId = null;
-let currentStoryTitle = '';
-
-function shareStory(storyId, storyTitle) {
-    currentStoryId = storyId;
-    currentStoryTitle = storyTitle;
-    var shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
-    shareModal.show();
-}
-
-function shareOn(platform) {
-    const title = currentStoryTitle;
-    const url = `${window.location.origin}/story/${currentStoryId}`;
-
-    let shareUrl;
-    switch(platform) {
-        case 'twitter':
-            shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
-            break;
-        case 'facebook':
-            shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
-            break;
-        case 'linkedin':
-            shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
-            break;
-    }
-
-    window.open(shareUrl, '_blank', 'width=600,height=400');
-}
-</script>
 {% endblock %}

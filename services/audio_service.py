@@ -46,28 +46,12 @@ class AudioService:
         except Exception as e:
             logger.error(f"Error checking ElevenLabs service: {str(e)}")
 
-    def generate_audio(
-        self, 
-        text: str, 
-        voice_name: Optional[str] = None,
-        stability: float = 0.75,
-        similarity_boost: float = 0.75,
-        style: float = 0.0,
-        speaking_rate: float = 1.0,
-        pitch: float = 0.0
-    ) -> Dict[str, Union[bool, bytes, str]]:
+    def generate_audio(self, text: str, voice_name: Optional[str] = None) -> Dict[str, Union[bool, bytes, str]]:
         """
-        Generate audio from text using ElevenLabs API with voice customization
-
+        Generate audio from text using ElevenLabs API
         Args:
             text: The text to convert to speech
             voice_name: Optional voice name to use (defaults to self.default_voice)
-            stability: Voice stability (0.0 to 1.0)
-            similarity_boost: Voice similarity boost (0.0 to 1.0)
-            style: Speaking style (0.0 to 1.0)
-            speaking_rate: Speed of speech (0.5 to 2.0)
-            pitch: Voice pitch shift (-1.0 to 1.0)
-
         Returns:
             Dictionary containing success status and either audio data or error message
         """
@@ -81,13 +65,6 @@ class AudioService:
             return {"success": False, "error": "No text provided"}
 
         try:
-            # Validate parameters
-            stability = max(0.0, min(1.0, stability))
-            similarity_boost = max(0.0, min(1.0, similarity_boost))
-            style = max(0.0, min(1.0, style))
-            speaking_rate = max(0.5, min(2.0, speaking_rate))
-            pitch = max(-1.0, min(1.0, pitch))
-
             # Use provided voice or default
             voice_name = voice_name or self.default_voice
 
@@ -113,12 +90,8 @@ class AudioService:
                 "text": text,
                 "model_id": "eleven_monolingual_v1",
                 "voice_settings": {
-                    "stability": stability,
-                    "similarity_boost": similarity_boost,
-                    "style": style,
-                    "use_speaker_boost": True,
-                    "speaking_rate": speaking_rate,
-                    "pitch": pitch
+                    "stability": 0.75,
+                    "similarity_boost": 0.75
                 }
             }
 

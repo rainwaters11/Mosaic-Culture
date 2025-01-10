@@ -18,6 +18,4 @@ dependencies = [
     "cloudinary>=1.42.1",
     "elevenlabs>=1.50.3",
     "flask-caching>=2.3.0",
-    "weasyprint>=63.1",
-    "ebooklib>=0.18",
 ]
