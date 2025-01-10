@@ -122,11 +122,16 @@ class AudioService:
     def _generate_soundtrack_prompt(self, style: str, mood: str) -> str:
         """Generate a prompt for soundtrack creation"""
         return (
-            f"Create a gentle {style} background music that feels {mood}. "
-            "The melody should be subtle and suitable for storytelling, "
-            "maintaining cultural authenticity while being universally appealing. "
-            "Include traditional instruments and natural harmonies. "
-            "The piece should be calming and not overpower spoken narration."
+            f"<speak><break time='500ms'/>"
+            f"<prosody rate='slow' pitch='+0st'>"
+            f"♪ Creating {style} music that feels {mood}. "
+            "Using traditional instruments and natural harmonies. "
+            "The melody should be gentle and suitable for storytelling background. "
+            "Starting with soft notes, building gradually, maintaining cultural authenticity. "
+            "Including rhythmic patterns and melodic elements typical of the style. "
+            "Keeping the volume moderate and the pace steady. ♪"
+            "</prosody>"
+            "<break time='500ms'/></speak>"
         )
 
     def _get_voice_id(self, voice_name: str) -> Optional[str]:
