@@ -132,7 +132,39 @@ def load_user(id):
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    """Home page with featured stories"""
+    try:
+        # Get featured stories (most liked and commented)
+        featured_stories = (
+            Story.query
+            .outerjoin(StoryLike)
+            .group_by(Story.id)
+            .order_by(db.func.count(StoryLike.id).desc())
+            .limit(6)
+            .all()
+        )
+
+        # Get recent stories
+        recent_stories = (
+            Story.query
+            .order_by(Story.submission_date.desc())
+            .limit(6)
+            .all()
+        )
+
+        # Add debug logging
+        app.logger.debug(f"Featured stories count: {len(featured_stories)}")
+        app.logger.debug(f"Recent stories count: {len(recent_stories)}")
+
+        return render_template(
+            "index.html",
+            featured_stories=featured_stories,
+            recent_stories=recent_stories
+        )
+    except Exception as e:
+        app.logger.error(f"Error in index route: {str(e)}")
+        flash("Error loading stories", "error")
+        return render_template("index.html", featured_stories=[], recent_stories=[])
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -436,9 +468,24 @@ def add_comment(story_id):
 @app.route("/profile")
 @login_required
 def profile():
-    user_badges = services['badge'].get_user_badges(current_user) if services['badge'] else []
-    user_stories = Story.query.filter_by(user_id=current_user.id).order_by(Story.submission_date.desc()).all()
-    return render_template("profile.html", badges=user_badges, stories=user_stories)
+    """User profile with their stories and badges"""
+    try:
+        user_stories = Story.query.filter_by(user_id=current_user.id)\
+            .order_by(Story.submission_date.desc()).all()
+        user_badges = UserBadge.query.filter_by(user_id=current_user.id).all()
+
+        app.logger.debug(f"User stories count: {len(user_stories)}")
+        app.logger.debug(f"User badges count: {len(user_badges)}")
+
+        return render_template(
+            "profile.html",
+            stories=user_stories,
+            badges=user_badges
+        )
+    except Exception as e:
+        app.logger.error(f"Error in profile route: {str(e)}")
+        flash("Error loading profile data", "error")
+        return render_template("profile.html", stories=[], badges=[])
 
 @app.route("/generate_story", methods=["POST"])
 @login_required
