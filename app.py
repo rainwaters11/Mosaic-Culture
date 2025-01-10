@@ -1,15 +1,16 @@
 import os
 import logging
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask_login import LoginManager, current_user, login_user, logout_user, login_required
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import LoginManager, current_user, login_user, logout_user, login_required
 import datetime
 from database import db
 from services.audio_service import AudioService
 from services.image_service import ImageService
 from services.storage_service import StorageService
 from services.badge_service import BadgeService
+from services.story_service import StoryService
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -42,6 +43,7 @@ audio_service = AudioService()
 image_service = ImageService()
 storage_service = StorageService()
 badge_service = BadgeService()
+story_service = StoryService()
 
 # Import models after db initialization
 from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge
@@ -158,7 +160,7 @@ def submit_story():
                 audio_data = audio_service.generate_audio(content)
                 if audio_data:
                     upload_result = storage_service.upload_media(
-                        audio_data, 
+                        audio_data,
                         resource_type="audio",
                         public_id=f"audio_{datetime.datetime.utcnow().timestamp()}"
                     )
@@ -284,3 +286,28 @@ def profile():
     user_badges = badge_service.get_user_badges(current_user)
     user_stories = Story.query.filter_by(user_id=current_user.id).order_by(Story.submission_date.desc()).all()
     return render_template("profile.html", badges=user_badges, stories=user_stories)
+
+@app.route("/generate_story", methods=["POST"])
+@login_required
+def generate_story():
+    try:
+        data = request.get_json()
+        title = data.get("title")
+        theme = data.get("theme")
+        region = data.get("region")
+
+        if not all([title, theme, region]):
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+
+        generated_content = story_service.generate_story(title, theme, region)
+        if generated_content:
+            return jsonify({
+                "success": True,
+                "content": generated_content["content"]
+            })
+        else:
+            return jsonify({"success": False, "error": "Failed to generate story"}), 500
+
+    except Exception as e:
+        logger.error(f"Error in generate_story: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500

@@ -17,8 +17,16 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="content" class="form-label">Your Story</label>
-                        <textarea class="form-control" id="content" name="content" rows="6" required></textarea>
+                        <label for="theme" class="form-label">Theme</label>
+                        <select class="form-select" id="theme" name="theme" required>
+                            <option value="">Select a theme</option>
+                            <option value="Traditions">Traditions & Customs</option>
+                            <option value="Festivals">Festivals & Celebrations</option>
+                            <option value="Food">Food & Cuisine</option>
+                            <option value="Art">Art & Crafts</option>
+                            <option value="Music">Music & Dance</option>
+                            <option value="Folklore">Folklore & Mythology</option>
+                        </select>
                     </div>
 
                     <div class="mb-3">
@@ -31,6 +39,22 @@
                             <option value="Americas">Americas</option>
                             <option value="Oceania">Oceania</option>
                         </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="use_ai" name="use_ai">
+                            <label class="form-check-label" for="use_ai">
+                                Use AI to Help Generate Story
+                            </label>
+                            <small class="form-text text-muted d-block">AI will create a story based on your title, theme, and region</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="content" class="form-label">Your Story</label>
+                        <textarea class="form-control" id="content" name="content" rows="6" required></textarea>
+                        <small class="form-text text-muted">Share your story or edit the AI-generated content</small>
                     </div>
 
                     <div class="mb-3">
@@ -48,21 +72,21 @@
 
                     <div class="mb-3">
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="generate_audio" name="generate_audio">
-                            <label class="form-check-label" for="generate_audio">
-                                Generate Audio Narration
-                            </label>
-                            <small class="form-text text-muted d-block">Uses AI to create an audio version of your story</small>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="generate_image" name="generate_image">
                             <label class="form-check-label" for="generate_image">
                                 Generate AI Illustration
                             </label>
                             <small class="form-text text-muted d-block">Creates an AI-generated image based on your story</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="generate_audio" name="generate_audio">
+                            <label class="form-check-label" for="generate_audio">
+                                Generate Audio Narration
+                            </label>
+                            <small class="form-text text-muted d-block">Uses AI to create an audio version of your story</small>
                         </div>
                     </div>
 
@@ -74,4 +98,55 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const useAiCheckbox = document.getElementById('use_ai');
+    const contentTextarea = document.getElementById('content');
+    const submitButton = document.querySelector('button[type="submit"]');
+    const form = document.querySelector('form');
+
+    useAiCheckbox.addEventListener('change', async function() {
+        if (this.checked) {
+            const title = document.getElementById('title').value;
+            const theme = document.getElementById('theme').value;
+            const region = document.getElementById('region').value;
+
+            if (!title || !theme || !region) {
+                alert('Please fill in the title, theme, and region before using AI generation.');
+                this.checked = false;
+                return;
+            }
+
+            submitButton.disabled = true;
+            submitButton.textContent = 'Generating Story...';
+
+            try {
+                const response = await fetch('/generate_story', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ title, theme, region })
+                });
+
+                const data = await response.json();
+                if (data.success && data.content) {
+                    contentTextarea.value = data.content;
+                } else {
+                    alert('Failed to generate story. Please try again or write your story manually.');
+                    this.checked = false;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while generating the story.');
+                this.checked = false;
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Submit Story';
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

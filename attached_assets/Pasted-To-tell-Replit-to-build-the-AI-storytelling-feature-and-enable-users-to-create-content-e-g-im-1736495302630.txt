@@ -1,0 +1,67 @@
+To tell **Replit** to build the AI storytelling feature and enable users to create content (e.g., images, videos, or stories), craft a clear, structured, and detailed prompt that outlines the functionality you want, the AI tools to be used, and the desired user experience. Here's an example of a professional-grade prompt designed for a top developer or prompt engineer:
+
+---
+
+### **Prompt for Replit:**
+> **Build an AI-powered storytelling feature for the Mosaic Culture app with the following capabilities:**
+>
+> ### **Core Features:**
+> 1. **Storytelling with AI**:
+>    - Allow users to input basic details (e.g., title, theme, cultural context) through a form.
+>    - Generate detailed, culturally sensitive stories using a GPT-based API (e.g., OpenAI’s API).
+>    - Provide users the option to refine or regenerate parts of the story interactively.
+>
+> 2. **Content Creation**:
+>    - **Image Generation**:
+>      - Use DALL-E or Stable Diffusion APIs to create culturally relevant images based on the generated story or user-provided prompts.
+>    - **Video Creation**:
+>      - Integrate RunwayML or a similar API to generate short, dynamic video clips inspired by the story.
+>    - **Audio Narration**:
+>      - Use ElevenLabs API to convert the story text into high-quality audio narration in multiple voices or accents.
+>
+> ### **Frontend Requirements:**
+> - Create a clean, user-friendly interface for:
+>    - Story input (text fields, dropdowns, or tags for cultural themes).
+>    - Viewing and editing generated stories.
+>    - Selecting content generation options (image, video, audio).
+> - Display generated content in an interactive gallery with options to download, share, or refine the content.
+>
+> ### **Backend Requirements:**
+> - Implement APIs to handle:
+>    - Story generation (GPT-based API).
+>    - Image creation (DALL-E or Stable Diffusion).
+>    - Video generation (RunwayML or similar).
+>    - Audio narration (ElevenLabs).
+> - Automate workflows:
+>    - Save generated content to Cloudinary or a similar storage service.
+>    - Link the content to a user database for retrieval and personalization.
+>
+> ### **Workflow and Automation:**
+> - Use Python or Node.js to handle API calls and manage workflows.
+> - Automate storage and metadata logging with Google Sheets or Airtable via Zapier.
+>
+> ### **Design Principles:**
+> - Ensure the app is responsive and visually aligned with the Mosaic Culture theme.
+> - Use the **Mosaic Culture brand colors** for UI elements:
+>    - **Primary Color**: #ffffff (White)
+>    - **Secondary Color**: #000000 (Black)
+>    - **Accent Colors**: #ff5722 (Orange), #4caf50 (Green), #d32f2f (Red)
+>
+> ### **Deliverables:**
+> 1. A functional frontend where users can input story ideas and generate content.
+> 2. Backend integration with AI APIs for storytelling, image, video, and audio generation.
+> 3. Automated workflows for storing and managing generated content.
+> 4. A polished UI that reflects the Mosaic Culture theme.
+> 5. Comprehensive testing to ensure smooth operation of all features.
+>
+> **Key Objective**: Build an engaging, user-friendly platform that empowers users to create culturally rich stories and multimedia content effortlessly.
+
+---
+
+### **Follow-Up Guidance for Replit**:
+Once you input the prompt, ensure you:
+1. **Test Intermediate Steps**: Run and verify each feature (story generation, image creation, etc.) before proceeding to the next.
+2. **Leverage Copilot Assistance**: If using GitHub Copilot, let it suggest boilerplate code for API integration and workflow automation.
+3. **Iterate and Optimize**: Adjust and refine the interface or workflows based on user experience and feedback.
+
+This prompt provides clarity, structure, and a roadmap for building the app efficiently. Let me know if you'd like help refining it further!
