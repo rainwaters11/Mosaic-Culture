@@ -4,102 +4,140 @@
 
 {% block content %}
 <div class="hero-section text-center">
-    <h1>Share Your Cultural Story</h1>
-    <p class="lead">Join our global community in celebrating diversity through storytelling</p>
-    <a href="{{ url_for('submit_story') }}" class="btn btn-light btn-lg mt-3">Share Your Story</a>
-</div>
-
-<div class="featured-stories">
-    <h2 class="section-title">Featured Stories</h2>
-    <div class="story-grid">
-        {% for story in featured_stories %}
-        <div class="story-card">
-            {% if story.generated_image_url or story.media_url %}
-            <div class="story-card-image">
-                <img src="{{ story.generated_image_url or story.media_url }}" 
-                     alt="{{ story.title }}"
-                     loading="lazy">
-            </div>
-            {% endif %}
-            <div class="story-card-content">
-                <h3 class="story-card-title">{{ story.title }}</h3>
-                <p class="story-card-excerpt">{{ story.content[:200] }}...</p>
-                <div class="story-meta">
-                    <span class="badge bg-secondary">{{ story.region }}</span>
-                    <small class="text-muted d-block mt-2">By {{ story.author.username }}</small>
-                </div>
-                {% if story.tags %}
-                <div class="story-tags mt-3">
-                    {% for tag in story.tags %}
-                    <span class="badge bg-light text-dark">#{{ tag.name }}</span>
-                    {% endfor %}
-                </div>
-                {% endif %}
-                <div class="story-card-footer">
-                    <a href="{{ url_for('view_story', story_id=story.id) }}" 
-                       class="btn btn-primary">Read More</a>
-                    <div class="engagement-stats">
-                        <span class="me-2">
-                            <i class="fas fa-heart text-danger"></i> 
-                            {{ story.likes|length }}
-                        </span>
-                        <span>
-                            <i class="fas fa-comment"></i> 
-                            {{ story.comments|length }}
-                        </span>
-                    </div>
-                </div>
-            </div>
+    <div class="container">
+        <h1 class="display-4 mb-4 fw-bold">Share Your Cultural Story</h1>
+        <p class="lead mb-4">Join our global community in celebrating diversity through storytelling. Every story adds a unique thread to the tapestry of human experience.</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{{ url_for('submit_story') }}" class="btn btn-light btn-lg">Share Your Story</a>
+            <a href="{{ url_for('gallery') }}" class="btn btn-outline-light btn-lg">Explore Stories</a>
         </div>
-        {% endfor %}
     </div>
 </div>
 
-{% if recent_stories %}
-<div class="recent-stories mt-5">
-    <h2 class="section-title">Recent Stories</h2>
-    <div class="story-grid">
-        {% for story in recent_stories %}
-        <div class="story-card">
-            {% if story.generated_image_url or story.media_url %}
-            <div class="story-card-image">
-                <img src="{{ story.generated_image_url or story.media_url }}" 
-                     alt="{{ story.title }}"
-                     loading="lazy">
+<div class="container">
+    <!-- Statistics Section -->
+    <div class="row text-center mb-5">
+        <div class="col-md-4 mb-4 mb-md-0">
+            <div class="stats-card p-4 rounded-3 bg-white shadow-sm">
+                <i class="fas fa-globe fa-2x mb-3 text-primary"></i>
+                <h3 class="fw-bold">{{ featured_stories|length + recent_stories|length }}</h3>
+                <p class="text-muted">Stories Shared</p>
             </div>
-            {% endif %}
-            <div class="story-card-content">
-                <h3 class="story-card-title">{{ story.title }}</h3>
-                <p class="story-card-excerpt">{{ story.content[:200] }}...</p>
-                <div class="story-meta">
-                    <span class="badge bg-secondary">{{ story.region }}</span>
-                    <small class="text-muted d-block mt-2">By {{ story.author.username }}</small>
-                </div>
-                {% if story.tags %}
-                <div class="story-tags mt-3">
-                    {% for tag in story.tags %}
-                    <span class="badge bg-light text-dark">#{{ tag.name }}</span>
-                    {% endfor %}
-                </div>
-                {% endif %}
-                <div class="story-card-footer">
-                    <a href="{{ url_for('view_story', story_id=story.id) }}" 
-                       class="btn btn-primary">Read More</a>
-                    <div class="engagement-stats">
-                        <span class="me-2">
-                            <i class="fas fa-heart text-danger"></i> 
-                            {{ story.likes|length }}
-                        </span>
-                        <span>
-                            <i class="fas fa-comment"></i> 
-                            {{ story.comments|length }}
-                        </span>
+        </div>
+        <div class="col-md-4 mb-4 mb-md-0">
+            <div class="stats-card p-4 rounded-3 bg-white shadow-sm">
+                <i class="fas fa-map-marker-alt fa-2x mb-3 text-primary"></i>
+                <h3 class="fw-bold">5</h3>
+                <p class="text-muted">Regions Covered</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card p-4 rounded-3 bg-white shadow-sm">
+                <i class="fas fa-users fa-2x mb-3 text-primary"></i>
+                <h3 class="fw-bold">{{ featured_stories|selectattr('author')|unique|list|length }}</h3>
+                <p class="text-muted">Active Storytellers</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Featured Stories Section -->
+    <section class="featured-stories mb-5">
+        <h2 class="section-title">Featured Stories</h2>
+        <div class="row">
+            {% for story in featured_stories %}
+            <div class="col-md-6 col-lg-4">
+                <div class="story-card">
+                    {% if story.generated_image_url or story.media_url %}
+                    <div class="story-card-image">
+                        <img src="{{ story.generated_image_url or story.media_url }}" 
+                             alt="{{ story.title }}"
+                             loading="lazy">
+                    </div>
+                    {% endif %}
+                    <div class="story-card-content">
+                        <h3 class="story-card-title">{{ story.title }}</h3>
+                        <div class="story-meta">
+                            <span class="badge bg-secondary">{{ story.region }}</span>
+                            <small class="text-muted d-block mt-2">By {{ story.author.username }}</small>
+                        </div>
+                        <p class="story-card-excerpt">{{ story.content[:150] }}...</p>
+                        {% if story.tags %}
+                        <div class="story-tags">
+                            {% for tag in story.tags[:3] %}
+                            <span class="badge bg-light text-dark">#{{ tag.name }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="story-card-footer">
+                            <a href="{{ url_for('view_story', story_id=story.id) }}" 
+                               class="btn btn-primary">Read More</a>
+                            <div class="engagement-stats">
+                                <span class="me-3">
+                                    <i class="fas fa-heart text-danger"></i> 
+                                    {{ story.likes|length }}
+                                </span>
+                                <span>
+                                    <i class="fas fa-comment text-primary"></i> 
+                                    {{ story.comments|length }}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
-    </div>
+    </section>
+
+    <!-- Recent Stories Section -->
+    {% if recent_stories %}
+    <section class="recent-stories">
+        <h2 class="section-title">Recent Stories</h2>
+        <div class="row">
+            {% for story in recent_stories %}
+            <div class="col-md-6 col-lg-4">
+                <div class="story-card">
+                    {% if story.generated_image_url or story.media_url %}
+                    <div class="story-card-image">
+                        <img src="{{ story.generated_image_url or story.media_url }}" 
+                             alt="{{ story.title }}"
+                             loading="lazy">
+                    </div>
+                    {% endif %}
+                    <div class="story-card-content">
+                        <h3 class="story-card-title">{{ story.title }}</h3>
+                        <div class="story-meta">
+                            <span class="badge bg-secondary">{{ story.region }}</span>
+                            <small class="text-muted d-block mt-2">By {{ story.author.username }}</small>
+                        </div>
+                        <p class="story-card-excerpt">{{ story.content[:150] }}...</p>
+                        {% if story.tags %}
+                        <div class="story-tags">
+                            {% for tag in story.tags[:3] %}
+                            <span class="badge bg-light text-dark">#{{ tag.name }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="story-card-footer">
+                            <a href="{{ url_for('view_story', story_id=story.id) }}" 
+                               class="btn btn-primary">Read More</a>
+                            <div class="engagement-stats">
+                                <span class="me-3">
+                                    <i class="fas fa-heart text-danger"></i> 
+                                    {{ story.likes|length }}
+                                </span>
+                                <span>
+                                    <i class="fas fa-comment text-primary"></i> 
+                                    {{ story.comments|length }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
 </div>
-{% endif %}
 {% endblock %}
