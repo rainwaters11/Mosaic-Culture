@@ -1,0 +1,105 @@
+Here’s a **refined troubleshooting prompt** to guide Replit in addressing why the page navigates to the story gallery but doesn’t generate images or videos:
+
+---
+
+### **Prompt for Debugging Image and Video Generation**
+
+> **Help debug and fix the `Generate AI Illustration` and `Generate Video` features in the Mosaic Culture app. The page successfully navigates to the story gallery, but the generated images and videos do not appear. Follow these steps to identify and resolve the issue:**
+>
+> ### **1. Verify Backend API Integration**
+> - Ensure that the APIs for image and video generation are being called correctly.
+> - Check the API request function for potential issues such as:
+>   - Missing or incorrect parameters in the request payload.
+>   - Invalid or expired API keys.
+>   - Incorrect API endpoints.
+>
+> Example Debugging Code:
+> ```python
+> import requests
+>
+> def debug_api_call():
+>     api_url = "https://api.openai.com/v1/images/generations"  # Replace with your API endpoint
+>     headers = {"Authorization": "Bearer YOUR_API_KEY"}
+>     data = {"prompt": "Test prompt", "n": 1, "size": "512x512"}
+>
+>     response = requests.post(api_url, headers=headers, json=data)
+>     print("API Response Status:", response.status_code)
+>     print("API Response Content:", response.text)
+> ```
+> - Run this function and log the output to confirm the API call succeeds.
+
+---
+
+> ### **2. Test Data Flow Between Frontend and Backend**
+> - Ensure the user’s input (story text) is correctly passed from the frontend to the backend.
+> - Add debugging logs to confirm data flow:
+> ```python
+> @app.route('/generate_image', methods=['POST'])
+> def generate_image():
+>     user_input = request.json.get('story_text', '')
+>     print("Received Story Text:", user_input)  # Debugging log
+> ```
+> - Verify the backend receives the correct data.
+
+---
+
+> ### **3. Debug API Response Handling**
+> - Ensure the API response (e.g., generated image or video URL) is correctly parsed and passed to the frontend.
+> - Add logs to confirm response handling:
+> ```python
+> def handle_api_response(response):
+>     try:
+>         data = response.json()
+>         print("API Response Data:", data)
+>         return data["url"]  # Replace with the actual key in the API response
+>     except Exception as e:
+>         print("Error handling API response:", e)
+>         return None
+> ```
+> - Verify that the correct URL or output is returned.
+
+---
+
+> ### **4. Check Frontend Rendering**
+> - Ensure the gallery page correctly receives and displays the generated content.
+> - Add logging in the frontend to debug:
+> ```javascript
+> console.log("Gallery Page Data:", galleryData);  // Ensure the correct image/video URL is passed
+> ```
+> - Verify the image or video element is correctly updated:
+> ```javascript
+> const imageElement = document.getElementById("generatedImage");
+> imageElement.src = galleryData.imageUrl;  // Replace with actual data key
+> ```
+
+---
+
+> ### **5. Validate Error Handling**
+> - Ensure the app gracefully handles cases where:
+>   - The API fails or returns an error.
+>   - The generated content URL is missing or invalid.
+> - Add error messages for better user feedback:
+> ```python
+> if not response.ok:
+>     print("Error: Failed to generate content")
+>     return {"error": "Failed to generate image or video"}
+> ```
+
+---
+
+> ### **6. Test with Sample Inputs**
+> - Provide sample prompts and test the entire flow:
+>   - Input: “A story about a golden harvest moon celebration.”
+>   - Expected Output: A generated image or video URL displayed in the gallery.
+> - Log the entire process to identify where the issue occurs.
+
+---
+
+> ### **Deliverables**
+> - A functioning system where generated images and videos are correctly passed from the backend to the gallery.
+> - Debug logs showing the flow of data between the frontend, backend, and API.
+> - Clear error handling to notify users when generation fails.
+
+---
+
+This prompt provides a clear roadmap for troubleshooting, focusing on data flow, API integration, and frontend rendering. Let me know if you need further assistance!

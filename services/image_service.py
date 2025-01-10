@@ -27,7 +27,9 @@ class ImageService:
 
         while retries < self.max_retries:
             try:
-                logger.debug(f"Generating image with prompt: {enhanced_prompt}")
+                logger.debug(f"Attempting to generate image (attempt {retries + 1}/{self.max_retries})")
+                logger.debug(f"Using prompt: {enhanced_prompt}")
+
                 response = self.client.images.generate(
                     model="dall-e-3",
                     prompt=enhanced_prompt,
@@ -41,14 +43,16 @@ class ImageService:
                     logger.info("Successfully generated image")
                     return response.data[0].url
 
+                logger.error("No image data in response")
+                return None
+
             except Exception as e:
                 logger.error(f"Error generating image (attempt {retries + 1}/{self.max_retries}): {str(e)}")
                 retries += 1
                 if retries < self.max_retries:
                     time.sleep(self.retry_delay)
                     continue
-
-            return None
+                return None
 
     def _enhance_prompt(self, prompt: str) -> str:
         """
@@ -60,6 +64,7 @@ class ImageService:
             "Create a high-quality, detailed illustration with cultural sensitivity "
             "and authentic representation. Use rich colors and meaningful symbols "
             "relevant to the story's context. Focus on artistic composition "
-            "and cultural accuracy."
+            "and cultural accuracy. Ensure the style is photorealistic and "
+            "maintains cultural authenticity."
         )
         return enhanced[:1000]  # DALL-E has a prompt length limit

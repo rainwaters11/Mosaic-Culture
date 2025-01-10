@@ -132,93 +132,110 @@ def submit_story():
             flash("Please fill in all required fields", "error")
             return redirect(request.url)
 
-        # Create story
-        story = Story(
-            title=title,
-            content=content,
-            region=region,
-            user_id=current_user.id,
-            submission_date=datetime.datetime.utcnow()
-        )
+        try:
+            # Create story first to get the ID
+            story = Story(
+                title=title,
+                content=content,
+                region=region,
+                user_id=current_user.id,
+                submission_date=datetime.datetime.utcnow()
+            )
+            db.session.add(story)
+            db.session.flush()  # Get the story ID without committing
 
-        # Handle media upload
-        if "media" in request.files:
-            file = request.files["media"]
-            if file.filename:
+            # Handle media upload if provided
+            if "media" in request.files:
+                file = request.files["media"]
+                if file.filename:
+                    try:
+                        file_data = file.read()
+                        upload_result = storage_service.upload_media(file_data)
+                        if upload_result:
+                            story.media_url = upload_result["url"]
+                    except Exception as e:
+                        logger.error(f"Error uploading media: {str(e)}")
+                        flash("Error uploading media", "error")
+
+            # Generate and store AI image if requested
+            if generate_image:
                 try:
-                    file_data = file.read()
-                    upload_result = storage_service.upload_media(file_data)
-                    if upload_result:
-                        story.media_url = upload_result["url"]
+                    logger.info("Generating AI image for story")
+                    image_prompt = f"Create an illustration for '{title}': {content[:200]}..."
+                    image_url = image_service.generate_image(image_prompt)
+                    if image_url:
+                        story.generated_image_url = image_url
+                        logger.info(f"Successfully generated image: {image_url}")
+                    else:
+                        logger.error("Failed to generate image: No URL returned")
+                        flash("Could not generate AI image", "warning")
                 except Exception as e:
-                    logger.error(f"Error uploading media: {str(e)}")
-                    flash("Error uploading media", "error")
+                    logger.error(f"Error generating image: {str(e)}")
+                    flash("Error generating AI image", "error")
 
-        # Generate and store audio narration if requested
-        if generate_audio:
+            # Generate and store audio narration if requested
+            if generate_audio:
+                try:
+                    logger.info("Generating audio narration")
+                    audio_data = audio_service.generate_audio(content)
+                    if audio_data:
+                        upload_result = storage_service.upload_media(
+                            audio_data,
+                            resource_type="audio",
+                            public_id=f"audio_{datetime.datetime.utcnow().timestamp()}"
+                        )
+                        if upload_result:
+                            story.audio_url = upload_result["url"]
+                            logger.info(f"Successfully generated audio: {upload_result['url']}")
+                        else:
+                            logger.error("Failed to upload audio: No URL returned")
+                            flash("Could not save audio narration", "warning")
+                    else:
+                        logger.error("Failed to generate audio: No audio data returned")
+                        flash("Could not generate audio narration", "warning")
+                except Exception as e:
+                    logger.error(f"Error generating audio: {str(e)}")
+                    flash("Error generating audio narration", "error")
+
+            # Process tags
+            if tags_input:
+                try:
+                    tag_names = [t.strip().lower() for t in tags_input.split(',') if t.strip()]
+                    for tag_name in tag_names:
+                        tag = Tag.query.filter_by(name=tag_name).first()
+                        if not tag:
+                            tag = Tag(name=tag_name)
+                            db.session.add(tag)
+                            db.session.flush()  # Get tag ID without committing
+                        story.tags.append(tag)
+                except Exception as e:
+                    logger.error(f"Error processing tags: {str(e)}")
+                    flash("Error processing tags", "error")
+
+            # Commit all changes
             try:
-                audio_data = audio_service.generate_audio(content)
-                if audio_data:
-                    upload_result = storage_service.upload_media(
-                        audio_data,
-                        resource_type="audio",
-                        public_id=f"audio_{datetime.datetime.utcnow().timestamp()}"
-                    )
-                    if upload_result:
-                        story.audio_url = upload_result["url"]
-            except Exception as e:
-                logger.error(f"Error generating audio: {str(e)}")
-                flash("Error generating audio narration", "error")
+                db.session.commit()
+                logger.info(f"Successfully saved story with ID: {story.id}")
+                flash("Your story has been submitted successfully!", "success")
 
-        # Generate and store AI image if requested
-        if generate_image:
-            try:
-                image_prompt = f"Create an illustration for a story about {title}: {content[:100]}..."
-                image_url = image_service.generate_image(image_prompt)
-                if image_url:
-                    story.generated_image_url = image_url
-            except Exception as e:
-                logger.error(f"Error generating image: {str(e)}")
-                flash("Error generating AI image", "error")
+                # Check for new badges
+                new_badges = badge_service.check_and_award_badges(current_user)
+                if new_badges:
+                    badge_names = [badge.name for badge in new_badges]
+                    flash(f"Congratulations! You earned new badges: {', '.join(badge_names)}", "success")
 
-        # First save the story to get an ID
-        db.session.add(story)
-        try:
-            db.session.commit()
-            logger.info(f"Story created with ID: {story.id}")
+            except Exception as e:
+                logger.error(f"Error saving story: {str(e)}")
+                db.session.rollback()
+                flash("Error saving your story", "error")
+                return redirect(url_for("submit_story"))
+
+            return redirect(url_for("gallery"))
+
         except Exception as e:
-            logger.error(f"Error saving story: {str(e)}")
-            db.session.rollback()
-            flash("Error saving your story", "error")
+            logger.error(f"Unexpected error in submit_story: {str(e)}")
+            flash("An unexpected error occurred", "error")
             return redirect(url_for("submit_story"))
-
-        # Process tags after story is saved
-        if tags_input:
-            try:
-                tag_names = [t.strip().lower() for t in tags_input.split(',') if t.strip()]
-                for tag_name in tag_names:
-                    tag = Tag.query.filter_by(name=tag_name).first()
-                    if not tag:
-                        tag = Tag(name=tag_name)
-                        db.session.add(tag)
-                        db.session.commit()  # Commit to get tag ID
-                    story.tags.append(tag)
-                db.session.commit()  # Commit the tag associations
-                logger.info(f"Added tags to story {story.id}: {tag_names}")
-            except Exception as e:
-                logger.error(f"Error processing tags: {str(e)}")
-                flash("Error processing tags", "error")
-
-        # After successful story submission, check for new badges
-        try:
-            new_badges = badge_service.check_and_award_badges(current_user)
-            if new_badges:
-                badge_names = [badge.name for badge in new_badges]
-                flash(f"Congratulations! You earned new badges: {', '.join(badge_names)}", "success")
-        except Exception as e:
-            logger.error(f"Error processing badges: {str(e)}")
-
-        return redirect(url_for("gallery"))
 
     return render_template("submit.html")
 
