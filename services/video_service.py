@@ -17,7 +17,19 @@ class VideoService:
         if not self.is_available:
             logger.error("RUNWAYML_API_KEY environment variable is not set")
         else:
-            logger.info("Video service initialized successfully")
+            # Validate API key format
+            if not self._validate_api_key():
+                logger.error("Invalid RunwayML API key format")
+                self.is_available = False
+            else:
+                logger.info("Video service initialized successfully")
+
+    def _validate_api_key(self) -> bool:
+        """Validate the API key format"""
+        if not self.api_key:
+            return False
+        # RunwayML API keys are typically non-empty strings
+        return len(self.api_key.strip()) > 0
 
     def generate_video(self, title: str, description: str, duration: int = 15) -> Dict[str, Union[bool, str]]:
         """
@@ -51,7 +63,7 @@ class VideoService:
             }
 
             headers = {
-                "Authorization": f"Bearer {self.api_key}",
+                "Authorization": f"Key {self.api_key}",  # Updated auth header format
                 "Content-Type": "application/json",
                 "Accept": "application/json"
             }
@@ -90,14 +102,14 @@ class VideoService:
                         "error": error_msg
                     }
             elif response.status_code == 401:
-                error_msg = "Invalid API key or authentication error"
-                logger.error(error_msg)
+                error_msg = "Invalid API key or authentication error. Please verify your RunwayML API key."
+                logger.error(f"{error_msg} Response: {response.text}")
                 return {
                     "success": False,
                     "error": error_msg
                 }
             elif response.status_code == 429:
-                error_msg = "Rate limit exceeded"
+                error_msg = "Rate limit exceeded. Please try again later."
                 logger.error(error_msg)
                 return {
                     "success": False,
