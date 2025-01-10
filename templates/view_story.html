@@ -94,6 +94,62 @@
                                         <option value="Bill">Bill</option>
                                     </select>
                                 </div>
+
+                                <!-- Voice Customization Controls -->
+                                <div class="voice-customization mb-3">
+                                    <h6 class="mb-3">Voice Customization</h6>
+
+                                    <div class="mb-2">
+                                        <label for="stability" class="form-label d-flex justify-content-between">
+                                            <span>Stability</span>
+                                            <small class="text-muted" id="stability-value">0.75</small>
+                                        </label>
+                                        <input type="range" class="form-range" id="stability" 
+                                               min="0" max="1" step="0.05" value="0.75">
+                                        <small class="text-muted d-block">Controls consistency in voice generation</small>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <label for="similarity-boost" class="form-label d-flex justify-content-between">
+                                            <span>Similarity Boost</span>
+                                            <small class="text-muted" id="similarity-boost-value">0.75</small>
+                                        </label>
+                                        <input type="range" class="form-range" id="similarity-boost" 
+                                               min="0" max="1" step="0.05" value="0.75">
+                                        <small class="text-muted d-block">Enhances voice similarity to the original</small>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <label for="style" class="form-label d-flex justify-content-between">
+                                            <span>Style</span>
+                                            <small class="text-muted" id="style-value">0.0</small>
+                                        </label>
+                                        <input type="range" class="form-range" id="style" 
+                                               min="0" max="1" step="0.05" value="0">
+                                        <small class="text-muted d-block">Adjusts speaking style intensity</small>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <label for="speaking-rate" class="form-label d-flex justify-content-between">
+                                            <span>Speaking Rate</span>
+                                            <small class="text-muted" id="speaking-rate-value">1.0</small>
+                                        </label>
+                                        <input type="range" class="form-range" id="speaking-rate" 
+                                               min="0.5" max="2" step="0.1" value="1.0">
+                                        <small class="text-muted d-block">Controls speech speed (0.5x to 2x)</small>
+                                    </div>
+
+                                    <div class="mb-2">
+                                        <label for="pitch" class="form-label d-flex justify-content-between">
+                                            <span>Pitch</span>
+                                            <small class="text-muted" id="pitch-value">0.0</small>
+                                        </label>
+                                        <input type="range" class="form-range" id="pitch" 
+                                               min="-1" max="1" step="0.1" value="0">
+                                        <small class="text-muted d-block">Adjusts voice pitch (-1 to +1)</small>
+                                    </div>
+                                </div>
+
                                 <button class="btn btn-primary" onclick="generateAudio()" id="generate-audio-btn">
                                     <i class="fas fa-microphone me-2"></i>Generate Audio Narration
                                 </button>
@@ -208,12 +264,26 @@ function shareOn(platform) {
 }
 
 // Audio generation functionality
+// Update displayed values for sliders
+document.querySelectorAll('.form-range').forEach(slider => {
+    slider.addEventListener('input', function() {
+        document.getElementById(`${this.id}-value`).textContent = this.value;
+    });
+});
+
 function generateAudio() {
     const audioStatus = document.getElementById('audio-status');
     const audioPreview = document.getElementById('audio-preview');
     const generatedAudio = document.getElementById('generated-audio');
     const voiceSelection = document.getElementById('voice-selection');
     const generateButton = document.getElementById('generate-audio-btn');
+
+    // Get voice customization values
+    const stability = document.getElementById('stability').value;
+    const similarityBoost = document.getElementById('similarity-boost').value;
+    const style = document.getElementById('style').value;
+    const speakingRate = document.getElementById('speaking-rate').value;
+    const pitch = document.getElementById('pitch').value;
 
     // Disable the generate button and show loading state
     generateButton.disabled = true;
@@ -227,7 +297,12 @@ function generateAudio() {
         },
         body: JSON.stringify({
             story_id: '{{ story.id }}',
-            voice: voiceSelection.value
+            voice: voiceSelection.value,
+            stability: parseFloat(stability),
+            similarity_boost: parseFloat(similarityBoost),
+            style: parseFloat(style),
+            speaking_rate: parseFloat(speakingRate),
+            pitch: parseFloat(pitch)
         })
     })
     .then(response => response.json())

@@ -527,6 +527,13 @@ def generate_audio():
         story_id = data.get("story_id")
         voice_name = data.get("voice", "Aria")  # Default to Aria voice
 
+        # Get voice customization parameters
+        stability = float(data.get("stability", 0.75))
+        similarity_boost = float(data.get("similarity_boost", 0.75))
+        style = float(data.get("style", 0.0))
+        speaking_rate = float(data.get("speaking_rate", 1.0))
+        pitch = float(data.get("pitch", 0.0))
+
         # Fetch the story
         story = Story.query.get_or_404(story_id)
 
@@ -544,8 +551,16 @@ def generate_audio():
                 "message": "Audio already exists"
             })
 
-        # Generate audio
-        audio_result = services['audio'].generate_audio(story.content, voice_name)
+        # Generate audio with customized voice settings
+        audio_result = services['audio'].generate_audio(
+            story.content,
+            voice_name=voice_name,
+            stability=stability,
+            similarity_boost=similarity_boost,
+            style=style,
+            speaking_rate=speaking_rate,
+            pitch=pitch
+        )
 
         if audio_result["success"]:
             try:
