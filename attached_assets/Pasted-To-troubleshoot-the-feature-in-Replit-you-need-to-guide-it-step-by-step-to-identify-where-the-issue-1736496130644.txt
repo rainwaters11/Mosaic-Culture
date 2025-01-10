@@ -1,0 +1,113 @@
+To troubleshoot the feature in Replit, you need to guide it step-by-step to identify where the issue might lie. A structured troubleshooting prompt can help you debug the issue effectively.
+
+---
+
+### **Troubleshooting Prompt for Replit**
+
+> **Help troubleshoot the `Generate AI Illustration` and `Generate Audio Narration` features in the Mosaic Culture app. Follow these steps to identify and fix the issue:**
+>
+> ### **1. Review API Integration**
+> - Check if the API keys and endpoints for the image generation and audio narration features are configured correctly.
+> - Ensure the API requests include all required parameters.
+> - Provide a step-by-step review of the API call functions and suggest improvements if they are incorrectly implemented.
+>
+> Example Debugging Code:
+> ```python
+> import requests
+>
+> # Example test function to debug API request
+> def test_api_call():
+>     api_url = "https://api.openai.com/v1/images/generations"
+>     headers = {"Authorization": "Bearer YOUR_API_KEY"}
+>     data = {"prompt": "Test prompt", "n": 1, "size": "512x512"}
+>
+>     response = requests.post(api_url, headers=headers, json=data)
+>     print("Response Status Code:", response.status_code)
+>     print("Response Content:", response.text)
+> ```
+> - **Run the test function and log the output.** Verify if the response contains the expected data or an error message.
+
+---
+
+> ### **2. Test User Input Handling**
+> - Ensure the user input is being properly captured and passed to the backend functions.
+> - Add debugging logs to confirm the data flow:
+> ```python
+> def capture_user_input(input_text):
+>     print("User Input Captured:", input_text)  # Debugging log
+>     return input_text
+> ```
+> - Suggest fixes if the input is not reaching the API function.
+
+---
+
+> ### **3. Debug API Response Handling**
+> - Verify that the API responses are being parsed and handled correctly in the application.
+> - Add logs to capture the API response:
+> ```python
+> def handle_api_response(response):
+>     print("API Response:", response.json())  # Debugging log
+> ```
+> - If there are errors, suggest modifications to handle different response statuses (e.g., 400, 401, 500).
+
+---
+
+> ### **4. Frontend and Backend Communication**
+> - Ensure the frontend is correctly sending requests to the backend and displaying the results.
+> - Check:
+>   - Is the frontend passing the input correctly to the backend API route?
+>   - Is the backend returning the generated image/audio URL to the frontend?
+> - Add logs to confirm communication:
+> ```python
+> @app.route('/generate_image', methods=['POST'])
+> def generate_image_endpoint():
+>     data = request.json
+>     print("Received Data in Backend:", data)  # Debugging log
+> ```
+
+---
+
+> ### **5. Validate API Keys and Environment**
+> - Verify that the API keys are valid and have the necessary permissions.
+> - Ensure environment variables are correctly loaded in Replit:
+> ```python
+> import os
+> print("API Key Loaded:", os.getenv("API_KEY"))
+> ```
+
+---
+
+> ### **6. Testing Edge Cases**
+> - Test the features with:
+>   - Empty inputs.
+>   - Invalid prompts (e.g., overly long or nonsensical text).
+>   - Unavailable APIs (simulate downtime or bad responses).
+> - Ensure error handling is robust and user-friendly.
+
+---
+
+> ### **7. General Debugging Best Practices**
+> - Add debug logs throughout the code:
+> ```python
+> print("Function X executed")
+> print("Variable Y value:", y)
+> ```
+> - Use try-except blocks to catch errors:
+> ```python
+> try:
+>     response = requests.post(api_url, headers=headers, json=data)
+>     response.raise_for_status()
+> except requests.exceptions.RequestException as e:
+>     print("Error during API call:", e)
+> ```
+
+---
+
+> **Deliverable**:
+> - Identify and fix the issues preventing the features from working.
+> - Ensure both `Generate AI Illustration` and `Generate Audio Narration` are functional.
+> - Provide a summary of changes made to resolve the issues.
+
+---
+
+This prompt systematically guides Replit through debugging and resolving the issues. Let me know if you need help applying these steps!
