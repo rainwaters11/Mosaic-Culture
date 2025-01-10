@@ -517,6 +517,7 @@ def get_cultural_insights():
 def generate_audio():
     """API endpoint to generate audio narration using ElevenLabs"""
     if not services['audio'] or not services['audio'].is_available:
+        logger.error("Audio service is not available")
         return jsonify({
             "success": False,
             "error": "Audio service is not available. Please check if ElevenLabs API key is configured."
@@ -524,16 +525,31 @@ def generate_audio():
 
     try:
         data = request.get_json()
+        if not data:
+            logger.error("No JSON data received in request")
+            return jsonify({
+                "success": False,
+                "error": "No data provided"
+            }), 400
+
         story_id = data.get("story_id")
         voice_name = data.get("voice", "Aria")  # Default to Aria voice
 
         # Log request details
         logger.debug(f"Received audio generation request for story {story_id} with voice {voice_name}")
 
+        if not story_id:
+            logger.error("No story_id provided in request")
+            return jsonify({
+                "success": False,
+                "error": "Missing story_id"
+            }), 400
+
         # Fetch the story
         story = Story.query.get_or_404(story_id)
 
         if not story.content:
+            logger.error(f"Story {story_id} has no content")
             return jsonify({
                 "success": False,
                 "error": "Story content is missing"
@@ -584,6 +600,7 @@ def generate_audio():
                     "error": f"Error uploading audio: {str(e)}"
                 }), 500
         else:
+            logger.error(f"Error generating audio: {audio_result.get('error', 'Unknown error')}")
             return jsonify({
                 "success": False,
                 "error": audio_result.get("error", "Unknown error occurred")
