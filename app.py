@@ -321,15 +321,15 @@ def submit_story():
                 try:
                     logger.info("Generating soundtrack for story")
                     if services['audio']:
-                        soundtrack_data = services['audio'].generate_soundtrack(content, region, theme)
-                        if soundtrack_data:
+                        soundtrack_result = services['audio'].generate_soundtrack(content, region, theme)
+                        if soundtrack_result["success"] and soundtrack_result.get("audio_data"):
                             if services['storage']:
                                 upload_result = services['storage'].upload_media(
-                                    soundtrack_data,
+                                    soundtrack_result["audio_data"],
                                     resource_type="audio",
                                     public_id=f"soundtrack_{datetime.datetime.utcnow().timestamp()}"
                                 )
-                                if upload_result:
+                                if upload_result and "url" in upload_result:
                                     story.soundtrack_url = upload_result["url"]
                                     logger.info(f"Successfully generated soundtrack: {upload_result['url']}")
                                 else:
@@ -339,8 +339,9 @@ def submit_story():
                                 logger.error("Storage service is not available")
                                 flash("Could not save soundtrack: Storage service unavailable", "warning")
                         else:
-                            logger.error("Failed to generate soundtrack: No audio data returned")
-                            flash("Could not generate soundtrack", "warning")
+                            error_msg = soundtrack_result.get("error", "Failed to generate soundtrack")
+                            logger.error(f"Failed to generate soundtrack: {error_msg}")
+                            flash(error_msg, "warning")
                     else:
                         logger.error("Audio service is not available")
                         flash("Error generating soundtrack: Audio service unavailable", "error")
@@ -656,26 +657,32 @@ def generate_soundtrack():
 
         if services['audio'] and services['storage']:
             # Generate the soundtrack
-            soundtrack_data = services['audio'].generate_soundtrack(content, region, theme)
-            if soundtrack_data:
+            soundtrack_result = services['audio'].generate_soundtrack(content, region, theme)
+            if soundtrack_result["success"] and soundtrack_result.get("audio_data"):
                 # Upload soundtrack to storage
                 try:
                     upload_result = services['storage'].upload_media(
-                        soundtrack_data,
+                        soundtrack_result["audio_data"],
                         resource_type="audio",
                         public_id=f"soundtrack_{datetime.datetime.utcnow().timestamp()}"
                     )
-                    if upload_result:
+                    if upload_result and "url" in upload_result:
                         audio_url = upload_result["url"]
                         cache.set(cache_key, audio_url)
                         return jsonify({"success": True, "audio_url": audio_url})
+                    else:
+                        logger.error("Failed to upload soundtrack: No URL returned")
+                        return jsonify({"success": False, "error": "Failed to save soundtrack"}), 500
                 except Exception as e:
                     logger.error(f"Error uploading soundtrack: {str(e)}")
-            return jsonify({"success": False, "error": "Failed to generate soundtrack"}), 500
+                    return jsonify({"success": False, "error": str(e)}), 500
+            else:
+                error_msg = soundtrack_result.get("error", "Failed to generate soundtrack")
+                logger.error(f"Failed to generate soundtrack: {error_msg}")
+                return jsonify({"success": False, "error": error_msg}), 500
         else:
             logger.error("Audio or Storage service is not available")
             return jsonify({"success": False, "error": "Audio or Storage service unavailable"}), 503
-
 
     except Exception as e:
         logger.error(f"Error generating soundtrack: {str(e)}")

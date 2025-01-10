@@ -195,8 +195,21 @@ class AudioService:
             # Use a specialized voice for background music generation
             voice_name = "Antoni"  # Antoni voice works well for musical content
 
-            # Generate the soundtrack
-            return self.generate_audio(prompt, voice_name)
+            # Generate the soundtrack using the audio generation method
+            audio_result = self.generate_audio(prompt, voice_name)
+
+            # Return the raw audio data if successful
+            if audio_result["success"]:
+                return {
+                    "success": True,
+                    "audio_data": audio_result["audio_data"],
+                    "content_type": audio_result["content_type"]
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": audio_result.get("error", "Failed to generate soundtrack")
+                }
 
         except Exception as e:
             logger.error(f"Error generating soundtrack: {str(e)}")
