@@ -653,11 +653,16 @@ def generate_image():
             "error": str(e)
         }), 500
 
-@app.route("/story/<int:story_id>")
+@app.route("/story/<int:story_id>", methods=["GET"])
 def view_story(story_id):
-    """View a single story, used for social media sharing"""
-    story = Story.query.get_or_404(story_id)
-    return render_template("view_story.html", story=story)
+    """View a single story with audio generation capabilities"""
+    try:
+        story = Story.query.get_or_404(story_id)
+        return render_template("view_story.html", story=story)
+    except Exception as e:
+        logger.error(f"Error viewing story {story_id}: {str(e)}")
+        flash("Error loading story", "error")
+        return redirect(url_for("gallery"))
 
 
 @app.route("/story/<int:story_id>/export/<format>")
