@@ -2,7 +2,7 @@
 import os
 import logging
 import time
-from typing import Optional, Dict, Union
+from typing import Optional, Dict, Union, Callable
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -30,11 +30,9 @@ class VideoService:
         self.session.mount('https://', HTTPAdapter(max_retries=retries))
 
         try:
-            # Validate API key using a more reliable endpoint
             headers = self._get_headers()
             logger.info("Validating RunwayML API key...")
 
-            # Test the API key with a simple endpoint
             response = self.session.get(
                 f"{self.api_url}/status",  
                 headers=headers,
@@ -69,13 +67,20 @@ class VideoService:
             return "Duration must be between 5 and 60 seconds"
         return None
 
-    def generate_video(self, title: str, description: str, duration: int = 15) -> Dict[str, Union[bool, str]]:
+    def generate_video(
+        self, 
+        title: str, 
+        description: str, 
+        duration: int = 15,
+        progress_callback: Optional[Callable[[int, str], None]] = None
+    ) -> Dict[str, Union[bool, str]]:
         """
-        Generate a video based on story content using RunwayML
+        Generate a video based on story content using RunwayML with progress tracking
         Args:
             title: The title of the story
             description: Story content or description for video generation
             duration: Duration of the video in seconds (default: 15)
+            progress_callback: Optional callback function to report progress
         Returns:
             Dictionary containing success status and either video URL or error message
         """
@@ -94,10 +99,13 @@ class VideoService:
             }
 
         try:
+            if progress_callback:
+                progress_callback(5, "Preparing video generation")
+
             # Format prompt for better video generation
             prompt = f"{title}\n\nDescription: {description}"
 
-            # Prepare the request payload for v1 API
+            # Prepare the request payload
             payload = {
                 "prompt": prompt,
                 "negative_prompt": "blurry, low quality, distorted",
@@ -112,7 +120,9 @@ class VideoService:
 
             headers = self._get_headers()
 
-            # Make the API request
+            if progress_callback:
+                progress_callback(10, "Starting video generation")
+
             logger.info(f"Requesting video generation for story: {title}")
             logger.debug(f"Using endpoint: {self.api_url}/generations")
             logger.debug(f"Request payload: {payload}")
@@ -131,8 +141,14 @@ class VideoService:
             logger.debug(f"Response content: {response.text[:200]}...")
 
             if response.status_code == 200:
+                if progress_callback:
+                    progress_callback(50, "Processing video")
+
                 result = response.json()
                 if 'output' in result and 'video_url' in result['output']:
+                    if progress_callback:
+                        progress_callback(90, "Finalizing video")
+
                     logger.info(f"Successfully generated video for story: {title}")
                     return {
                         "success": True,

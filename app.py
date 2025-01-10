@@ -1,5 +1,6 @@
 import os
 import logging
+import uuid
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import current_user, login_user, logout_user, login_required
 from flask_migrate import Migrate
@@ -713,24 +714,62 @@ def view_story(story_id):
     story = Story.query.get_or_404(story_id)
     return render_template("view_story.html", story=story)
 
+VIDEO_GENERATION_STATUS = {}
+
+@app.route("/api/video-preview/<preview_id>")
+def get_video_preview_status(preview_id):
+    """Get the status of a video generation preview"""
+    status = VIDEO_GENERATION_STATUS.get(preview_id, {
+        'status': 'not_found',
+        'progress': 0,
+        'message': 'Preview not found'
+    })
+    return jsonify(status)
+
 @app.route("/api/generate-video", methods=["POST"])
 @login_required
 def generate_video():
-    """Generate a video based on story content"""
+    """Generate a video based on story content with preview support"""
     try:
         data = request.get_json()
         title = data.get("title")
         content = data.get("content")
         duration = data.get("duration", 15)  # Default to 15 seconds
+        preview_id = str(uuid.uuid4())
 
         if not all([title, content]):
             return jsonify({"success": False, "error": "Missing required fields"}), 400
 
+        # Initialize preview status
+        VIDEO_GENERATION_STATUS[preview_id] = {
+            'status': 'starting',
+            'progress': 0,
+            'message': 'Initializing video generation'
+        }
+
         if services['video']:
-            # Generate the video
-            video_result = services['video'].generate_video(title, content, duration)
+            def update_progress(progress, message):
+                VIDEO_GENERATION_STATUS[preview_id] = {
+                    'status': 'in_progress',
+                    'progress': progress,
+                    'message': message
+                }
+
+            # Generate the video with progress updates
+            video_result = services['video'].generate_video(
+                title, content, duration, 
+                progress_callback=update_progress
+            )
 
             if video_result["success"]:
+                # Update final status
+                VIDEO_GENERATION_STATUS[preview_id] = {
+                    'status': 'completed',
+                    'progress': 100,
+                    'message': 'Video generation complete',
+                    'video_url': video_result["video_url"]
+                }
+
                 # Store video URL in story if needed
                 if "story_id" in data:
                     story = Story.query.get(data["story_id"])
@@ -740,12 +779,20 @@ def generate_video():
 
                 return jsonify({
                     "success": True,
+                    "preview_id": preview_id,
                     "video_url": video_result["video_url"]
                 })
             else:
+                # Update error status
+                VIDEO_GENERATION_STATUS[preview_id] = {
+                    'status': 'error',
+                    'progress': 0,
+                    'message': video_result.get("error", "Failed to generate video")
+                }
                 logger.error(f"Failed to generate video: {video_result.get('error')}")
                 return jsonify({
                     "success": False,
+                    "preview_id": preview_id,
                     "error": video_result.get("error", "Failed to generate video")
                 }), 500
         else:

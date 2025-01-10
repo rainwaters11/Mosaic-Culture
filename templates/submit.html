@@ -130,7 +130,7 @@
                         </div>
                     </div>
 
-                    <!-- Added Video Generation Section -->
+                    <!-- Updated Video Generation Section -->
                     <div class="mb-3">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="generate_video" name="generate_video">
@@ -150,16 +150,10 @@
                             <small class="form-text text-muted">Select video duration</small>
                         </div>
 
-                        <!-- Add video preview section -->
+                        <!-- Updated video preview section -->
                         <div id="videoPreview" class="mt-3 d-none">
                             <label class="form-label">Video Preview</label>
-                            <div class="text-center">
-                                <video id="generatedVideo" controls class="w-100">
-                                    <source src="" type="video/mp4">
-                                    Your browser does not support the video element.
-                                </video>
-                                <div id="videoGenerationStatus" class="mt-2"></div>
-                            </div>
+                            <div id="videoPreviewContainer"></div>
                         </div>
                     </div>
 
@@ -182,6 +176,11 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/video-preview.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const useAiCheckbox = document.getElementById('use_ai');
@@ -521,10 +520,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             videoDuration.classList.remove('d-none');
+            videoPreview.classList.remove('d-none');
+
             try {
-                showLoading('Generating story video...');
-                videoPreview.classList.remove('d-none');
-                videoStatus.innerHTML = '<div class="alert alert-info">Generating video...</div>';
+                showLoading('Starting video generation...');
 
                 const response = await fetch('/api/generate-video', {
                     method: 'POST',
@@ -539,16 +538,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
 
                 const data = await response.json();
-                if (data.success && data.video_url) {
-                    generatedVideo.src = data.video_url;
-                    generatedVideo.load();
-                    videoStatus.innerHTML = '<div class="alert alert-success">Video generated successfully!</div>';
+                if (data.success && data.preview_id) {
+                    videoPreviewManager.startPreview(data.preview_id);
                 } else {
                     throw new Error(data.error || 'Failed to generate video');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                videoStatus.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                videoPreviewManager.showError(error.message);
                 this.checked = false;
             } finally {
                 hideLoading();
@@ -556,8 +553,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             videoDuration.classList.add('d-none');
             videoPreview.classList.add('d-none');
-            generatedVideo.src = '';
-            videoStatus.innerHTML = '';
+            videoPreviewManager.stopPreview();
         }
     });
 
@@ -649,8 +645,11 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error submitting story:', error);
         }
     });
-});
 
+    // Initialize video preview manager
+    const videoPreviewManager = new VideoPreviewManager('videoPreviewContainer');
+    videoPreviewManager.initialize();
+});
 </script>
 
 <style>
@@ -673,6 +672,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .share-dialog button {
     min-width: 120px;
+}
+
+/* Add styles for video preview */
+#videoPreviewContainer {
+    min-height: 200px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    padding: 1rem;
 }
 </style>
 {% endblock %}
