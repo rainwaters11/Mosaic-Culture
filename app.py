@@ -524,31 +524,46 @@ def generate_audio():
 
     try:
         data = request.get_json()
-        content = data.get("content")
-        voice_name = data.get("voice", "Aria")  # Default to Aria instead of Bella
+        story_id = data.get("story_id")
+        voice_name = data.get("voice", "Aria")  # Default to Aria voice
 
-        if not content:
+        # Fetch the story
+        story = Story.query.get_or_404(story_id)
+
+        if not story.content:
             return jsonify({
                 "success": False,
-                "error": "Missing content"
+                "error": "Story content is missing"
             }), 400
 
+        # Check if audio already exists
+        if story.audio_url:
+            return jsonify({
+                "success": True,
+                "audio_url": story.audio_url,
+                "message": "Audio already exists"
+            })
+
         # Generate audio
-        audio_result = services['audio'].generate_audio(content, voice_name)
+        audio_result = services['audio'].generate_audio(story.content, voice_name)
 
         if audio_result["success"]:
-            # Upload the audio file
             try:
                 audio_data = audio_result["audio_data"]
                 if services['storage']:
+                    # Upload the audio file to storage
                     upload_result = services['storage'].upload_media(
                         audio_data,
                         resource_type="audio",
-                        public_id=f"audio_{datetime.datetime.utcnow().timestamp()}"
+                        public_id=f"audio_{story_id}_{datetime.datetime.utcnow().timestamp()}"
                     )
 
                     if upload_result and "url" in upload_result:
-                        logger.info(f"Successfully generated and uploaded audio: {upload_result['url']}")
+                        # Save the audio URL to the story
+                        story.audio_url = upload_result["url"]
+                        db.session.commit()
+
+                        logger.info(f"Successfully generated and uploaded audio for story {story_id}")
                         return jsonify({
                             "success": True,
                             "audio_url": upload_result["url"]

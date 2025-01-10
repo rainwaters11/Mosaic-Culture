@@ -66,16 +66,35 @@
                                     Your browser does not support the audio element.
                                 </audio>
                             </div>
+                            <small class="text-muted">Audio narration is available and ready to play.</small>
                         {% else %}
                             <div class="generate-audio-section">
-                                <select class="form-select mb-2" id="voice-selection">
-                                    <option value="Bella">Bella (Default)</option>
-                                    <option value="Sarah">Sarah</option>
-                                    <option value="Charlie">Charlie</option>
-                                    <option value="George">George</option>
-                                    <option value="Alice">Alice</option>
-                                </select>
-                                <button class="btn btn-primary" onclick="generateAudio()">
+                                <div class="mb-3">
+                                    <label for="voice-selection" class="form-label">Select Voice</label>
+                                    <select class="form-select mb-2" id="voice-selection">
+                                        <option value="Aria">Aria (Default)</option>
+                                        <option value="Roger">Roger</option>
+                                        <option value="Sarah">Sarah</option>
+                                        <option value="Laura">Laura</option>
+                                        <option value="Charlie">Charlie</option>
+                                        <option value="George">George</option>
+                                        <option value="Callum">Callum</option>
+                                        <option value="River">River</option>
+                                        <option value="Liam">Liam</option>
+                                        <option value="Charlotte">Charlotte</option>
+                                        <option value="Alice">Alice</option>
+                                        <option value="Matilda">Matilda</option>
+                                        <option value="Will">Will</option>
+                                        <option value="Jessica">Jessica</option>
+                                        <option value="Eric">Eric</option>
+                                        <option value="Chris">Chris</option>
+                                        <option value="Brian">Brian</option>
+                                        <option value="Daniel">Daniel</option>
+                                        <option value="Lily">Lily</option>
+                                        <option value="Bill">Bill</option>
+                                    </select>
+                                </div>
+                                <button class="btn btn-primary" onclick="generateAudio()" id="generate-audio-btn">
                                     <i class="fas fa-microphone me-2"></i>Generate Audio Narration
                                 </button>
                                 <div id="audio-status" class="mt-2"></div>
@@ -194,8 +213,12 @@ function generateAudio() {
     const audioPreview = document.getElementById('audio-preview');
     const generatedAudio = document.getElementById('generated-audio');
     const voiceSelection = document.getElementById('voice-selection');
+    const generateButton = document.getElementById('generate-audio-btn');
 
-    audioStatus.innerHTML = '<div class="alert alert-info">Generating audio narration...</div>';
+    // Disable the generate button and show loading state
+    generateButton.disabled = true;
+    generateButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+    audioStatus.innerHTML = '<div class="alert alert-info">Generating audio narration... This may take a few moments.</div>';
 
     fetch('/api/generate-audio', {
         method: 'POST',
@@ -213,14 +236,27 @@ function generateAudio() {
             audioPreview.classList.remove('d-none');
             generatedAudio.src = data.audio_url;
             generatedAudio.load(); // Reload the audio element
-            audioStatus.innerHTML = '<div class="alert alert-success">Audio generated successfully!</div>';
+            audioStatus.innerHTML = '<div class="alert alert-success">Audio generated successfully! You can now play the narration.</div>';
+
+            // If audio already existed
+            if (data.message === "Audio already exists") {
+                audioStatus.innerHTML = '<div class="alert alert-info">Audio narration was already available.</div>';
+            }
         } else {
             throw new Error(data.error || 'Failed to generate audio');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        audioStatus.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+        audioStatus.innerHTML = `<div class="alert alert-danger">
+            <strong>Error:</strong> ${error.message}
+            <br><small>Please try again or contact support if the issue persists.</small>
+        </div>`;
+    })
+    .finally(() => {
+        // Re-enable the generate button and restore its original text
+        generateButton.disabled = false;
+        generateButton.innerHTML = '<i class="fas fa-microphone me-2"></i>Generate Audio Narration';
     });
 }
 </script>
