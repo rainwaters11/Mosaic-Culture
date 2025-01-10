@@ -176,15 +176,16 @@ def submit_story():
                 try:
                     logger.info("Generating AI image for story")
                     image_prompt = f"Create an illustration for '{title}': {content[:200]}..."
-                    image_url = image_service.generate_image(image_prompt)
-                    if image_url:
-                        story.generated_image_url = image_url
-                        logger.info(f"Successfully generated image: {image_url}")
+                    image_result = image_service.generate_image(image_prompt)
+
+                    if image_result["success"]:
+                        story.generated_image_url = image_result["url"]
+                        logger.info(f"Successfully generated image: {image_result['url']}")
                     else:
-                        logger.error("Failed to generate image: No URL returned")
-                        flash("Could not generate AI image", "warning")
+                        logger.error(f"Failed to generate image: {image_result.get('error')}")
+                        flash("Could not generate AI image: " + image_result.get('error', 'Unknown error'), "warning")
                 except Exception as e:
-                    logger.error(f"Error generating image: {str(e)}")
+                    logger.error(f"Error in image generation process: {str(e)}")
                     flash("Error generating AI image", "error")
 
             # Generate and store audio narration if requested
