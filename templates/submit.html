@@ -85,6 +85,15 @@
                         </div>
                     </div>
 
+                    <!-- Add preview area for generated image -->
+                    <div id="imagePreview" class="mb-3 d-none">
+                        <label class="form-label">Generated Image Preview</label>
+                        <div class="text-center">
+                            <img id="generatedImage" src="" alt="Generated illustration" class="img-fluid rounded">
+                            <div id="imageGenerationStatus" class="mt-2"></div>
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="generate_audio" name="generate_audio">
@@ -161,6 +170,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const generateStoryboardCheckbox = document.getElementById('generate_storyboard');
     const storyboardPreview = document.getElementById('storyboardPreview');
     const storyboardPanels = document.getElementById('storyboardPanels');
+    const imagePreview = document.getElementById('imagePreview');
+    const generatedImage = document.getElementById('generatedImage');
+    const imageStatus = document.getElementById('imageGenerationStatus');
+    const title = document.getElementById('title');
+    const content = document.getElementById('content');
+
 
     // Add loading overlay
     const loadingOverlay = document.createElement('div');
@@ -506,6 +521,52 @@ document.addEventListener('DOMContentLoaded', function() {
             const region = regionSelect.value;
             const theme = document.getElementById('theme').value;
             await getCulturalInsights(content, region, theme);
+        }
+    });
+
+    // Handle image generation
+    generateImageCheckbox.addEventListener('change', async function() {
+        if (this.checked) {
+            if (!title.value || !content.value) {
+                alert('Please fill in the title and story content before generating an image.');
+                this.checked = false;
+                return;
+            }
+
+            try {
+                showLoading('Generating AI illustration...');
+                imagePreview.classList.remove('d-none');
+                imageStatus.innerHTML = '<div class="alert alert-info">Generating illustration...</div>';
+
+                const response = await fetch('/api/generate-image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: title.value,
+                        content: content.value
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success && data.url) {
+                    generatedImage.src = data.url;
+                    imageStatus.innerHTML = '<div class="alert alert-success">Image generated successfully!</div>';
+                } else {
+                    throw new Error(data.error || 'Failed to generate image');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                imageStatus.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                this.checked = false;
+            } finally {
+                hideLoading();
+            }
+        } else {
+            imagePreview.classList.add('d-none');
+            generatedImage.src = '';
+            imageStatus.innerHTML = '';
         }
     });
 });

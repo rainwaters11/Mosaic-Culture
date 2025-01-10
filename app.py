@@ -563,6 +563,48 @@ def generate_storyboard():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route("/api/generate-image", methods=["POST"])
+@login_required
+def generate_image():
+    """API endpoint to generate an image using DALL-E"""
+    try:
+        data = request.get_json()
+        title = data.get("title")
+        content = data.get("content")
+
+        if not title or not content:
+            return jsonify({
+                "success": False,
+                "error": "Missing title or content"
+            }), 400
+
+        # Create image prompt
+        image_prompt = f"Create an illustration for '{title}': {content[:200]}..."
+        logger.info(f"Generating image with prompt: {image_prompt}")
+
+        # Generate image
+        image_result = image_service.generate_image(image_prompt)
+
+        if image_result["success"]:
+            logger.info(f"Successfully generated image: {image_result['url']}")
+            return jsonify({
+                "success": True,
+                "url": image_result["url"]
+            })
+
+        logger.error(f"Failed to generate image: {image_result.get('error')}")
+        return jsonify({
+            "success": False,
+            "error": image_result.get("error", "Failed to generate image")
+        }), 500
+
+    except Exception as e:
+        logger.error(f"Error in generate_image endpoint: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 @app.route("/story/<int:story_id>")
 def view_story(story_id):
     """View a single story, used for social media sharing"""
