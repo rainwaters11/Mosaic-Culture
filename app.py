@@ -2,6 +2,7 @@ import os
 import logging
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import current_user, login_user, logout_user, login_required
+from flask_migrate import Migrate
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
@@ -46,22 +47,16 @@ def create_app():
     login_manager.init_app(app)
     login_manager.login_view = 'login'
 
+    # Initialize Flask-Migrate
+    migrate = Migrate(app, db)
+
     # Ensure upload directory exists
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
-    # Initialize database tables
-    with app.app_context():
-        try:
-            db.create_all()
-            logger.info("Database tables created successfully")
-        except Exception as e:
-            logger.error(f"Error creating database tables: {str(e)}")
-            raise
+    return app, migrate
 
-    return app
-
-# Create the application instance
-app = create_app()
+# Create the application instance and migrations
+app, migrate = create_app()
 
 
 # Initialize services
