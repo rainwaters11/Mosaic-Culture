@@ -13,7 +13,7 @@ class VideoService:
     def __init__(self):
         """Initialize video generation service"""
         self.api_key = os.environ.get('RUNWAYML_API_KEY')
-        self.api_url = "https://api.runwayml.com"
+        self.api_url = "https://api.runwayml.com/v1"
         self.is_available = bool(self.api_key)
 
         if not self.is_available:
@@ -30,11 +30,20 @@ class VideoService:
         self.session.mount('https://', HTTPAdapter(max_retries=retries))
 
         try:
-            # Validate API key by making a test request to list models
+            # Validate API key using a test generation request
             headers = self._get_headers()
-            response = self.session.get(
-                f"{self.api_url}/v1/models",
+            logger.info("Validating RunwayML API key...")
+
+            # Make a minimal test request to validate the API key
+            test_payload = {
+                "prompt": "Test prompt",
+                "mode": "text",
+            }
+
+            response = self.session.post(
+                f"{self.api_url}/text",
                 headers=headers,
+                json=test_payload,
                 timeout=10
             )
 
@@ -53,7 +62,7 @@ class VideoService:
     def _get_headers(self) -> Dict[str, str]:
         """Get headers with proper authentication"""
         return {
-            "Authorization": f"Key {self.api_key}",
+            "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
@@ -94,31 +103,30 @@ class VideoService:
             # Format prompt for better video generation
             prompt = f"{title}\n\nDescription: {description}"
 
-            # Prepare the request payload for RunwayML Gen-2 model
+            # Prepare the request payload
             payload = {
                 "prompt": prompt,
                 "negative_prompt": "",
-                "num_frames": duration * 24,  # 24 fps
-                "num_steps": 50,
-                "guidance_scale": 17.5,
+                "fps": 24,
                 "width": 1024,
-                "height": 576
+                "height": 576,
+                "num_frames": duration * 24,  # Convert duration to frames
+                "num_inference_steps": 50
             }
 
             headers = self._get_headers()
 
-            # Make the API request to Gen-2 video generation endpoint
-            endpoint = f"{self.api_url}/v1/generations"
+            # Make the API request
             logger.info(f"Requesting video generation for story: {title}")
-            logger.debug(f"Using endpoint: {endpoint}")
+            logger.debug(f"Using endpoint: {self.api_url}/inference")
             logger.debug(f"Request payload: {payload}")
 
             start_time = time.time()
             response = self.session.post(
-                endpoint,
+                f"{self.api_url}/inference",
                 json=payload,
                 headers=headers,
-                timeout=120  # Increased timeout for video generation
+                timeout=300  # 5 minutes timeout for video generation
             )
             logger.debug(f"Request took {time.time() - start_time:.2f} seconds")
 
@@ -127,17 +135,17 @@ class VideoService:
             logger.debug(f"Response content: {response.text[:200]}...")  # Log first 200 chars
 
             if response.status_code == 200:
-                video_data = response.json()
-                if 'artifacts' in video_data and len(video_data['artifacts']) > 0:
+                result = response.json()
+                if 'output' in result:
                     logger.info(f"Successfully generated video for story: {title}")
                     return {
                         "success": True,
-                        "video_url": video_data['artifacts'][0]['uri'],
+                        "video_url": result['output']['video_url'],
                         "content_type": "video/mp4"
                     }
                 else:
                     error_msg = "Invalid response format from RunwayML API"
-                    logger.error(f"{error_msg}. Response: {video_data}")
+                    logger.error(f"{error_msg}. Response: {result}")
                     return {
                         "success": False,
                         "error": error_msg
