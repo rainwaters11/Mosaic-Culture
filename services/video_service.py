@@ -10,9 +10,10 @@ class VideoService:
     def __init__(self):
         """Initialize video generation service"""
         self.api_key = os.environ.get('RUNWAYML_API_KEY')
-        self.api_url = "https://api.runwayml.com/v1/videos/generate"  # Example API endpoint
+        # Updated API endpoint based on RunwayML documentation
+        self.api_url = "https://api.runwayml.com/v1/inference"
         self.is_available = bool(self.api_key)
-        
+
         if not self.is_available:
             logger.error("RUNWAYML_API_KEY environment variable is not set")
         else:
@@ -20,7 +21,7 @@ class VideoService:
 
     def generate_video(self, title: str, description: str, duration: int = 15) -> Dict[str, Union[bool, str]]:
         """
-        Generate a video based on story content
+        Generate a video based on story content using RunwayML
         Args:
             title: The title of the story
             description: Story content or description for video generation
@@ -35,15 +36,24 @@ class VideoService:
             }
 
         try:
-            # Prepare the request payload
+            # Format prompt for better video generation
+            prompt = f"{title}\n\nDescription: {description}"
+
+            # Prepare the request payload according to RunwayML's format
             payload = {
-                "title": title,
-                "description": description,
-                "duration": duration
+                "model": "text-to-video",
+                "input": {
+                    "prompt": prompt,
+                    "duration": duration,
+                    "num_frames": duration * 30,  # Assuming 30fps
+                    "guidance_scale": 7.5,
+                    "num_inference_steps": 50
+                }
             }
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
+                "Accept": "application/json"
             }
 
             # Make the API request
@@ -56,12 +66,20 @@ class VideoService:
 
             if response.status_code == 200:
                 video_data = response.json()
-                logger.info(f"Successfully generated video for story: {title}")
-                return {
-                    "success": True,
-                    "video_url": video_data["video_url"],
-                    "content_type": "video/mp4"
-                }
+                if 'output' in video_data and 'video_url' in video_data['output']:
+                    logger.info(f"Successfully generated video for story: {title}")
+                    return {
+                        "success": True,
+                        "video_url": video_data['output']['video_url'],
+                        "content_type": "video/mp4"
+                    }
+                else:
+                    error_msg = "Invalid response format from RunwayML API"
+                    logger.error(error_msg)
+                    return {
+                        "success": False,
+                        "error": error_msg
+                    }
             else:
                 error_msg = f"Failed to generate video: {response.text}"
                 logger.error(error_msg)
@@ -70,6 +88,13 @@ class VideoService:
                     "error": error_msg
                 }
 
+        except requests.exceptions.RequestException as e:
+            error_msg = f"Network error while generating video: {str(e)}"
+            logger.error(error_msg)
+            return {
+                "success": False,
+                "error": error_msg
+            }
         except Exception as e:
             error_msg = f"Error generating video: {str(e)}"
             logger.error(error_msg)
