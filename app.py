@@ -527,6 +527,9 @@ def generate_audio():
         story_id = data.get("story_id")
         voice_name = data.get("voice", "Aria")  # Default to Aria voice
 
+        # Log request details
+        logger.debug(f"Received audio generation request for story {story_id} with voice {voice_name}")
+
         # Fetch the story
         story = Story.query.get_or_404(story_id)
 
@@ -538,6 +541,7 @@ def generate_audio():
 
         # Check if audio already exists
         if story.audio_url:
+            logger.info(f"Audio already exists for story {story_id}")
             return jsonify({
                 "success": True,
                 "audio_url": story.audio_url,

@@ -86,6 +86,11 @@ class AudioService:
                 "Content-Type": "application/json",
                 "xi-api-key": self.api_key
             }
+
+            # Log the request being made
+            logger.debug(f"Making request to ElevenLabs API: {url}")
+            logger.debug(f"Using voice: {voice_name} (ID: {voice_id})")
+
             data = {
                 "text": text,
                 "model_id": "eleven_monolingual_v1",
@@ -97,6 +102,9 @@ class AudioService:
 
             # Make the API request with proper error handling
             response = requests.post(url, json=data, headers=headers)
+
+            # Log response status
+            logger.debug(f"ElevenLabs API response status: {response.status_code}")
 
             if response.status_code == 200:
                 logger.info(f"Successfully generated audio with voice: {voice_name}")
@@ -127,7 +135,7 @@ class AudioService:
                     if voice["name"].lower() == voice_name.lower():
                         return voice["voice_id"]
 
-                logger.warning(f"Voice '{voice_name}' not found. Available voices: {', '.join([v['name'] for v in voices])}")
+                logger.warning(f"Voice '{voice_name}' not found in available voices")
                 return None
 
             logger.error(f"Error fetching voices: {response.text}")
