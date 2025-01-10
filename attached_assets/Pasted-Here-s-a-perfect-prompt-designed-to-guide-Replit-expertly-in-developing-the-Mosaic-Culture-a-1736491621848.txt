@@ -1,0 +1,55 @@
+Here’s a **perfect prompt** designed to guide Replit expertly in developing the **Mosaic Culture** app. This prompt encapsulates both the functionality and the branding updates for a seamless development process:
+
+---
+
+### **Prompt for Replit:**
+
+> **Develop the Mosaic Culture app as a complete, interactive platform. Focus on the following key functionalities and design elements:**
+>
+> ### **Core Features**:
+> 1. **Story Submission Form**: Create a form for users to submit stories, photos, videos, or audio. Ensure it supports file uploads and text inputs. Use Python to process submissions and store them in a database (e.g., Airtable or Google Sheets).
+> 2. **Media Generation**:
+>    - Integrate the **ElevenLabs API** to generate narrated audio from submitted story text.
+>    - Optionally integrate **DALL-E** to create AI-generated images or memes based on story descriptions.
+> 3. **Public Gallery**: Build a gallery to display submitted stories, images, and audio. Include filtering options (e.g., by region or tradition) and interactive features like likes, comments, and shares.
+> 4. **Automation**: Use Python scripts or workflow automation tools to:
+>    - Handle media uploads (e.g., to Cloudinary).
+>    - Trigger API calls for ElevenLabs and DALL-E.
+>    - Save processed media and metadata into a database.
+>
+> ### **Design and Branding**:
+> - Apply the **Mosaic Culture color scheme**:
+>   - **Primary Color**: `#ffffff` (White) for backgrounds or highlights.
+>   - **Secondary Color**: `#000000` (Black) for text and contrast.
+>   - **Background Color**: `#f5f5f5` (Light Gray) for a clean, neutral background.
+>   - **Accent Color**: `#ff5722` (Vivid Orange) for buttons and calls-to-action.
+>   - **Green**: `#4caf50` (Rich Green) for headers or success indicators.
+>   - **Red**: `#d32f2f` (Deep Red) for alerts or important highlights.
+> - Ensure responsive design for both mobile and desktop.
+> - Use a modern, user-friendly layout that highlights cultural diversity and storytelling.
+>
+> ### **Technical Stack**:
+> 1. **Frontend**:
+>    - HTML and CSS for structure and styling.
+>    - Use Python frameworks like Flask (or Django if applicable) for dynamic content rendering.
+> 2. **Backend**:
+>    - Handle API integrations (e.g., ElevenLabs, DALL-E).
+>    - Automate workflows for submission processing and media generation.
+> 3. **Database**:
+>    - Use Google Sheets or Airtable for submission storage and metadata management.
+> 4. **Hosting**:
+>    - Deploy the app using **Vercel** or another serverless hosting solution.
+>
+> ### **Deliverables**:
+> - A fully functional Mosaic Culture app with a polished user interface.
+> - All workflows (submission, media generation, gallery display) tested and operational.
+> - Deployed app ready for live testing and user interaction.
+>
+> **Key Goals**:
+> - Build the app efficiently with maintainable, scalable code.
+> - Focus on user experience, ensuring the platform is engaging and accessible.
+> - Document all API integrations and workflow processes for easy iteration.
+
+---
+
+This prompt combines the **developer mindset** with **prompt engineering expertise** to guide Replit through creating an optimized, fully functional app. It emphasizes key features, technical requirements, and design considerations while allowing flexibility for implementation. Let me know if you need further refinement or support!
