@@ -1,4 +1,4 @@
-"""Video generation service"""
+"""Video generation service using RunwayML"""
 import os
 import logging
 from typing import Optional, Dict, Union
@@ -10,8 +10,8 @@ class VideoService:
     def __init__(self):
         """Initialize video generation service"""
         self.api_key = os.environ.get('RUNWAYML_API_KEY')
-        # Updated API endpoint based on RunwayML documentation
-        self.api_url = "https://api.runwayml.com/v1/inference"
+        # Base URL for RunwayML API
+        self.api_url = "https://api.runway.ml/v1"
         self.is_available = bool(self.api_key)
 
         if not self.is_available:
@@ -41,28 +41,38 @@ class VideoService:
 
             # Prepare the request payload according to RunwayML's format
             payload = {
-                "model": "text-to-video",
-                "input": {
-                    "prompt": prompt,
+                "prompt": prompt,
+                "mode": "text-to-video",
+                "parameters": {
                     "duration": duration,
-                    "num_frames": duration * 30,  # Assuming 30fps
+                    "fps": 30,
                     "guidance_scale": 7.5,
-                    "num_inference_steps": 50
+                    "steps": 50,
+                    "seed": -1  # Random seed
                 }
             }
+
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
                 "Accept": "application/json"
             }
 
-            # Make the API request
+            # Make the API request to text-to-video endpoint
+            endpoint = f"{self.api_url}/text-to-video/generations"
             logger.info(f"Requesting video generation for story: {title}")
+            logger.debug(f"Using endpoint: {endpoint}")
+
             response = requests.post(
-                self.api_url,
+                endpoint,
                 json=payload,
-                headers=headers
+                headers=headers,
+                timeout=30  # Add timeout for the request
             )
+
+            # Log the response status and content for debugging
+            logger.debug(f"Response status: {response.status_code}")
+            logger.debug(f"Response content: {response.text[:200]}...")  # Log first 200 chars
 
             if response.status_code == 200:
                 video_data = response.json()
@@ -75,11 +85,25 @@ class VideoService:
                     }
                 else:
                     error_msg = "Invalid response format from RunwayML API"
-                    logger.error(error_msg)
+                    logger.error(f"{error_msg}. Response: {video_data}")
                     return {
                         "success": False,
                         "error": error_msg
                     }
+            elif response.status_code == 401:
+                error_msg = "Invalid API key or authentication error"
+                logger.error(error_msg)
+                return {
+                    "success": False,
+                    "error": error_msg
+                }
+            elif response.status_code == 429:
+                error_msg = "Rate limit exceeded"
+                logger.error(error_msg)
+                return {
+                    "success": False,
+                    "error": error_msg
+                }
             else:
                 error_msg = f"Failed to generate video: {response.text}"
                 logger.error(error_msg)
