@@ -13,7 +13,7 @@ class VideoService:
     def __init__(self):
         """Initialize video generation service"""
         self.api_key = os.environ.get('RUNWAYML_API_KEY')
-        self.api_url = "https://api.runwayml.com/v1"
+        self.api_url = "https://api.runwayml.com/v2"  # Updated to v2
         self.is_available = bool(self.api_key)
 
         if not self.is_available:
@@ -30,20 +30,14 @@ class VideoService:
         self.session.mount('https://', HTTPAdapter(max_retries=retries))
 
         try:
-            # Validate API key using a test generation request
+            # Validate API key using the models endpoint
             headers = self._get_headers()
             logger.info("Validating RunwayML API key...")
 
-            # Make a minimal test request to validate the API key
-            test_payload = {
-                "prompt": "Test prompt",
-                "mode": "text",
-            }
-
-            response = self.session.post(
-                f"{self.api_url}/text",
+            # Make a test request to the models endpoint
+            response = self.session.get(
+                f"{self.api_url}/models",
                 headers=headers,
-                json=test_payload,
                 timeout=10
             )
 
@@ -103,27 +97,31 @@ class VideoService:
             # Format prompt for better video generation
             prompt = f"{title}\n\nDescription: {description}"
 
-            # Prepare the request payload
+            # Prepare the request payload for v2 API
             payload = {
-                "prompt": prompt,
-                "negative_prompt": "",
-                "fps": 24,
-                "width": 1024,
-                "height": 576,
-                "num_frames": duration * 24,  # Convert duration to frames
-                "num_inference_steps": 50
+                "input": {
+                    "prompt": prompt,
+                    "negative_prompt": "blurry, low quality, distorted",
+                    "num_frames": duration * 24,  # Convert duration to frames
+                    "width": 1024,
+                    "height": 576,
+                    "guidance_scale": 7.5,
+                    "num_inference_steps": 50
+                },
+                "model": "text-to-video-2",  # Specify the model version
+                "output_format": "mp4"
             }
 
             headers = self._get_headers()
 
             # Make the API request
             logger.info(f"Requesting video generation for story: {title}")
-            logger.debug(f"Using endpoint: {self.api_url}/inference")
+            logger.debug(f"Using endpoint: {self.api_url}/generations")
             logger.debug(f"Request payload: {payload}")
 
             start_time = time.time()
             response = self.session.post(
-                f"{self.api_url}/inference",
+                f"{self.api_url}/generations",
                 json=payload,
                 headers=headers,
                 timeout=300  # 5 minutes timeout for video generation
@@ -132,11 +130,11 @@ class VideoService:
 
             # Log the response status and content for debugging
             logger.debug(f"Response status: {response.status_code}")
-            logger.debug(f"Response content: {response.text[:200]}...")  # Log first 200 chars
+            logger.debug(f"Response content: {response.text[:200]}...")
 
             if response.status_code == 200:
                 result = response.json()
-                if 'output' in result:
+                if 'output' in result and 'video_url' in result['output']:
                     logger.info(f"Successfully generated video for story: {title}")
                     return {
                         "success": True,

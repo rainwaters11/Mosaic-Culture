@@ -1,4 +1,4 @@
-from database import db
+from extensions import db
 from flask_login import UserMixin
 import datetime
 
@@ -44,6 +44,7 @@ class Story(db.Model):
     media_url = db.Column(db.String(500))  # URL for uploaded media (Cloudinary)
     generated_image_url = db.Column(db.String(500))  # URL for DALL-E generated image
     audio_url = db.Column(db.String(500))  # URL for ElevenLabs generated audio
+    video_url = db.Column(db.String(500))  # URL for RunwayML generated video
     soundtrack_url = db.Column(db.String(500))  # URL for generated soundtrack
     submission_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -53,7 +54,6 @@ class Story(db.Model):
         backref=db.backref('stories', lazy=True))
     is_featured = db.Column(db.Boolean, default=False)
     featured_date = db.Column(db.DateTime)
-    # Define shares relationship without duplicate backref
     shares = db.relationship('StoryShare', backref=db.backref('parent_story', lazy=True))
 
     @classmethod
@@ -78,9 +78,9 @@ class Tag(db.Model):
     __tablename__ = 'tags'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), unique=True, nullable=False)
-    category = db.Column(db.String(50), default='general', nullable=False)  # Added category field
+    category = db.Column(db.String(50), default='general', nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    description = db.Column(db.String(200))  # Added description field
+    description = db.Column(db.String(200))
 
 class StoryLike(db.Model):
     __tablename__ = 'story_likes'
