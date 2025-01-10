@@ -544,3 +544,123 @@ body {
     transform: scaleX(1);
     transform-origin: bottom left;
 }
+
+/* Story Preview Modal */
+.story-preview-modal .modal-dialog {
+    max-width: 800px;
+}
+
+.story-preview-modal .modal-content {
+    border: none;
+    border-radius: 1rem;
+    overflow: hidden;
+    background-color: var(--card-bg);
+}
+
+.story-preview-modal .modal-header {
+    position: absolute;
+    right: 0;
+    z-index: 1;
+    background: transparent;
+}
+
+.story-preview-modal .btn-close {
+    background-color: var(--card-bg);
+    opacity: 0.8;
+    border-radius: 50%;
+    margin: 1rem;
+    padding: 0.5rem;
+    transition: opacity 0.3s ease;
+}
+
+.story-preview-modal .btn-close:hover {
+    opacity: 1;
+}
+
+.story-preview-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.story-preview-image {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    overflow: hidden;
+}
+
+.story-preview-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.story-preview-image:hover img {
+    transform: scale(1.05);
+}
+
+.story-preview-details {
+    padding: 2rem;
+    background-color: var(--card-bg);
+}
+
+.story-preview-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--text-color);
+}
+
+.story-preview-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.story-preview-tags {
+    margin-bottom: 1.5rem;
+}
+
+.story-preview-text {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: var(--text-color);
+    opacity: 0.9;
+}
+
+.story-preview-footer {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.engagement-stats {
+    font-size: 1.1rem;
+}
+
+/* Responsive adjustments for the modal */
+@media (max-width: 768px) {
+    .story-preview-modal .modal-dialog {
+        margin: 0.5rem;
+    }
+
+    .story-preview-image {
+        height: 200px;
+    }
+
+    .story-preview-title {
+        font-size: 1.5rem;
+    }
+
+    .story-preview-text {
+        font-size: 1rem;
+    }
+
+    .story-preview-footer {
+        flex-direction: column;
+        gap: 1rem;
+    }
+}

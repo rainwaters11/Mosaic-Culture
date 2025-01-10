@@ -114,10 +114,49 @@
         </div>
     </footer>
 
+    <!-- Story Preview Modal -->
+    <div class="modal story-preview-modal fade" id="storyPreviewModal" tabindex="-1" aria-labelledby="storyPreviewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="story-preview-content">
+                        <div class="story-preview-image">
+                            <img src="" alt="" class="w-100">
+                        </div>
+                        <div class="story-preview-details p-4">
+                            <h3 class="story-preview-title"></h3>
+                            <div class="story-preview-meta mb-3">
+                                <span class="badge bg-secondary region-badge"></span>
+                                <small class="text-muted author-info"></small>
+                            </div>
+                            <div class="story-preview-tags mb-3"></div>
+                            <div class="story-preview-text mb-4"></div>
+                            <div class="story-preview-footer">
+                                <a href="" class="btn btn-primary read-more-btn">Read Full Story</a>
+                                <div class="engagement-stats mt-3">
+                                    <span class="likes me-3">
+                                        <i class="fas fa-heart text-danger"></i> 
+                                        <span class="likes-count">0</span>
+                                    </span>
+                                    <span class="comments">
+                                        <i class="fas fa-comment"></i> 
+                                        <span class="comments-count">0</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-    <script src="https://platform.twitter.com/widgets.js"></script>
     <script>
         // Theme toggling functionality
         document.addEventListener('DOMContentLoaded', () => {
@@ -229,6 +268,49 @@
         // Hide loading spinner when page is fully loaded
         window.addEventListener('load', function() {
             loadingSpinner.hide();
+        });
+
+        // Story Preview Modal functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const previewModal = document.getElementById('storyPreviewModal');
+            if (previewModal) {
+                const modal = new bootstrap.Modal(previewModal);
+
+                document.querySelectorAll('.story-preview-trigger').forEach(trigger => {
+                    trigger.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const storyData = this.dataset;
+
+                        // Update modal content
+                        const modalContent = previewModal.querySelector('.story-preview-content');
+                        modalContent.querySelector('.story-preview-image img').src = storyData.image || '';
+                        modalContent.querySelector('.story-preview-image img').alt = storyData.title;
+                        modalContent.querySelector('.story-preview-title').textContent = storyData.title;
+                        modalContent.querySelector('.region-badge').textContent = storyData.region;
+                        modalContent.querySelector('.author-info').textContent = storyData.author;
+                        modalContent.querySelector('.story-preview-text').textContent = storyData.excerpt;
+                        modalContent.querySelector('.read-more-btn').href = storyData.url;
+                        modalContent.querySelector('.likes-count').textContent = storyData.likes;
+                        modalContent.querySelector('.comments-count').textContent = storyData.comments;
+
+                        // Handle tags
+                        const tagsContainer = modalContent.querySelector('.story-preview-tags');
+                        tagsContainer.innerHTML = '';
+                        if (storyData.tags) {
+                            const tags = JSON.parse(storyData.tags);
+                            tags.forEach(tag => {
+                                const tagElement = document.createElement('a');
+                                tagElement.href = `/gallery?tag=${tag}`;
+                                tagElement.className = 'badge bg-light text-dark text-decoration-none me-1';
+                                tagElement.textContent = `#${tag}`;
+                                tagsContainer.appendChild(tagElement);
+                            });
+                        }
+
+                        modal.show();
+                    });
+                });
+            }
         });
     </script>
 </body>

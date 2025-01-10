@@ -16,10 +16,21 @@
         <div class="col-md-4 mb-4">
             <div class="card h-100 scale-in">
                 {% if story.generated_image_url or story.media_url %}
-                <img src="{{ story.generated_image_url or story.media_url }}" 
-                     class="card-img-top" 
-                     alt="{{ story.title }}"
-                     loading="lazy">
+                <a href="#" class="story-preview-trigger"
+                   data-title="{{ story.title }}"
+                   data-image="{{ story.generated_image_url or story.media_url }}"
+                   data-region="{{ story.region }}"
+                   data-author="By {{ story.author.username }} on {{ story.submission_date.strftime('%B %d, %Y') }}"
+                   data-excerpt="{{ story.content[:300] }}..."
+                   data-url="{{ url_for('view_story', story_id=story.id) }}"
+                   data-likes="{{ story.likes|length }}"
+                   data-comments="{{ story.comments|length }}"
+                   data-tags="{{ story.tags|map(attribute='name')|list|tojson }}">
+                    <img src="{{ story.generated_image_url or story.media_url }}" 
+                         class="card-img-top" 
+                         alt="{{ story.title }}"
+                         loading="lazy">
+                </a>
                 {% endif %}
                 <div class="card-body">
                     <h5 class="card-title">{{ story.title }}</h5>
@@ -57,10 +68,21 @@
             <div class="col-md-4 mb-4">
                 <div class="card h-100 fade-in">
                     {% if story.generated_image_url or story.media_url %}
-                    <img src="{{ story.generated_image_url or story.media_url }}" 
-                         class="card-img-top" 
-                         alt="{{ story.title }}"
-                         loading="lazy">
+                    <a href="#" class="story-preview-trigger"
+                       data-title="{{ story.title }}"
+                       data-image="{{ story.generated_image_url or story.media_url }}"
+                       data-region="{{ story.region }}"
+                       data-author="By {{ story.author.username }} on {{ story.submission_date.strftime('%B %d, %Y') }}"
+                       data-excerpt="{{ story.content[:300] }}..."
+                       data-url="{{ url_for('view_story', story_id=story.id) }}"
+                       data-likes="{{ story.likes|length }}"
+                       data-comments="{{ story.comments|length }}"
+                       data-tags="{{ story.tags|map(attribute='name')|list|tojson }}">
+                        <img src="{{ story.generated_image_url or story.media_url }}" 
+                             class="card-img-top" 
+                             alt="{{ story.title }}"
+                             loading="lazy">
+                    </a>
                     {% endif %}
                     <div class="card-body">
                         <h5 class="card-title">{{ story.title }}</h5>
