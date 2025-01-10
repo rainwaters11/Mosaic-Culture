@@ -1,0 +1,8 @@
+<svg width="200" height="50" xmlns="http://www.w3.org/2000/svg">
+    <style>
+        .title { font: bold 24px sans-serif; fill: #000000; }
+        .subtitle { font: 12px sans-serif; fill: #ff5722; }
+    </style>
+    <text x="10" y="30" class="title">MOSAIC CULTURE</text>
+    <text x="10" y="45" class="subtitle">Share Your Story</text>
+</svg>

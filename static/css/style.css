@@ -1,0 +1,109 @@
+:root {
+    --primary-color: #ffffff;
+    --secondary-color: #000000;
+    --background-color: #f5f5f5;
+    --accent-color: #ff5722;
+    --green-color: #4caf50;
+    --red-color: #d32f2f;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--secondary-color);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.navbar {
+    background-color: var(--primary-color);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand img {
+    height: 40px;
+}
+
+.nav-link {
+    color: var(--secondary-color);
+    font-weight: 500;
+}
+
+.nav-link:hover {
+    color: var(--accent-color);
+}
+
+.btn-primary {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+
+.btn-primary:hover {
+    background-color: #e64a19;
+    border-color: #e64a19;
+}
+
+.hero-section {
+    background-color: var(--primary-color);
+    padding: 4rem 0;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-img-top {
+    height: 200px;
+    object-fit: cover;
+}
+
+.story-meta {
+    margin-top: 1rem;
+}
+
+.badge {
+    background-color: var(--accent-color);
+}
+
+.like-btn {
+    color: var(--red-color);
+    border-color: var(--red-color);
+}
+
+.like-btn:hover {
+    background-color: var(--red-color);
+    color: var(--primary-color);
+}
+
+.footer {
+    background-color: var(--primary-color);
+    color: var(--secondary-color);
+    padding: 1rem 0;
+    margin-top: 2rem;
+}
+
+.alert-success {
+    background-color: var(--green-color);
+    color: var(--primary-color);
+}
+
+.alert-error {
+    background-color: var(--red-color);
+    color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 2rem 0;
+    }
+    
+    .card-img-top {
+        height: 150px;
+    }
+}

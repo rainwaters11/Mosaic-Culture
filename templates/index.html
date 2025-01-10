@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="hero-section text-center py-5">
+    <h1 class="display-4">Share Your Cultural Story</h1>
+    <p class="lead">Join our global community in celebrating diversity through storytelling</p>
+    <a href="{{ url_for('submit_story') }}" class="btn btn-primary btn-lg mt-3">Share Your Story</a>
+</div>
+
+<div class="featured-stories mt-5">
+    <h2 class="text-center mb-4">Featured Stories</h2>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1720238281139-2a33162cca1a" class="card-img-top" alt="Cultural Diversity">
+                <div class="card-body">
+                    <h5 class="card-title">Global Traditions</h5>
+                    <p class="card-text">Discover stories from around the world that showcase our rich cultural heritage.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1730315989960-24c8d31d41dd" class="card-img-top" alt="Storytelling">
+                <div class="card-body">
+                    <h5 class="card-title">Personal Stories</h5>
+                    <p class="card-text">Share your unique perspective and personal experiences with our community.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1690310456730-0a3a81d8a3af" class="card-img-top" alt="Cultural Traditions">
+                <div class="card-body">
+                    <h5 class="card-title">Cultural Heritage</h5>
+                    <p class="card-text">Preserve and celebrate the traditions that make our cultures unique.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

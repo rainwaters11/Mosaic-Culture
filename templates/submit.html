@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Story{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="text-center mb-0">Share Your Story</h2>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('submit_story') }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Story Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="content" class="form-label">Your Story</label>
+                        <textarea class="form-control" id="content" name="content" rows="6" required></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="region" class="form-label">Region</label>
+                        <select class="form-select" id="region" name="region" required>
+                            <option value="">Select a region</option>
+                            <option value="Asia">Asia</option>
+                            <option value="Africa">Africa</option>
+                            <option value="Europe">Europe</option>
+                            <option value="Americas">Americas</option>
+                            <option value="Oceania">Oceania</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="media" class="form-label">Upload Media (Optional)</label>
+                        <input type="file" class="form-control" id="media" name="media" accept="image/*">
+                    </div>
+                    
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary">Submit Story</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
