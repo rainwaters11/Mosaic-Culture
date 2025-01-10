@@ -6,16 +6,13 @@ from flask_caching import Cache
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
-from database import db
-from services.audio_service import AudioService
-from services.image_service import ImageService
-from services.storage_service import StorageService
-from services.badge_service import BadgeService
-from services.story_service import StoryService
-from services.tag_service import TagService
-from services.cultural_context_service import CulturalContextService
-from services.export_service import ExportService
 from functools import wraps
+from database import db
+from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge, EmojiReaction
+from services import (
+    AudioService, ImageService, StorageService, BadgeService,
+    StoryService, TagService, CulturalContextService, ExportService
+)
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -45,8 +42,16 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# Ensure upload directory exists
+# Create upload directory
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+
+# Initialize database and load user loader before importing models
+with app.app_context():
+    db.create_all()
+
+@login_manager.user_loader
+def load_user(id):
+    return User.query.get(int(id))
 
 # Initialize services
 def init_services():
@@ -113,23 +118,16 @@ def init_services():
 # Initialize all services
 services = init_services()
 
-# Import models after db initialization
-from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge, EmojiReaction
 
 # Initialize database and create default badges
 logger.info("Initializing database and default badges...")
 with app.app_context():
     try:
-        db.create_all()
         if services['badge']:
             services['badge'].initialize_default_badges()
         logger.info("Database and badges initialized successfully")
     except Exception as e:
         logger.error(f"Error initializing database: {str(e)}")
-
-@login_manager.user_loader
-def load_user(id):
-    return User.query.get(int(id))
 
 @app.route("/")
 def index():
@@ -841,3 +839,40 @@ def export_story(story_id, format):
         app.logger.error(f"Error exporting story: {str(e)}")
         flash("Error exporting story", "error")
         return redirect(url_for('view_story', story_id=story_id))
+
+@app.route("/story/delete/<int:story_id>", methods=["POST"])
+@login_required
+def delete_story(story_id):
+    """Delete a story and all its associated data"""
+    try:
+        story = Story.query.get_or_404(story_id)
+
+        # Check if user is authorized to delete this story
+        if story.user_id != current_user.id and not current_user.is_admin:
+            flash("You don't have permission to delete this story", "error")
+            return redirect(url_for('view_story', story_id=story_id))
+
+        # Delete associated reactions
+        EmojiReaction.query.filter_by(story_id=story_id).delete()
+
+        # Delete associated likes
+        StoryLike.query.filter_by(story_id=story_id).delete()
+
+        # Delete associated comments
+        Comment.query.filter_by(story_id=story_id).delete()
+
+        # Delete the story itself
+        db.session.delete(story)
+        db.session.commit()
+
+        flash("Story deleted successfully", "success")
+        return redirect(url_for('gallery'))
+
+    except Exception as e:
+        app.logger.logger.error(f"Error deleting story: {str(e)}")
+        db.session.rollback()
+        flash("Error deleting story", "error")
+        return redirect(url_for('view_story', story_id=story_id))
+
+if __name__ == "__main__":
+    app.run(debug=True)
