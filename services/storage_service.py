@@ -46,15 +46,8 @@ class StorageService:
             if public_id:
                 upload_args["public_id"] = public_id
 
-            # Set specific options based on resource type
-            if resource_type == "video":
-                upload_args.update({
-                    "chunk_size": 6000000,  # 6MB chunks for video upload
-                    "eager": [
-                        {"format": "mp4", "quality": "auto"}
-                    ]
-                })
-            elif resource_type == "audio":
+            # Set specific options for audio files
+            if resource_type == "audio":
                 upload_args.update({
                     "format": "mp3",
                     "resource_type": "video",  # Cloudinary handles audio under video type

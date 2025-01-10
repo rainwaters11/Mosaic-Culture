@@ -130,45 +130,8 @@
                         </div>
                     </div>
 
-                    <!-- Added Video Generation Section -->
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="generate_video" name="generate_video">
-                            <label class="form-check-label" for="generate_video">
-                                Generate Story Video
-                            </label>
-                            <small class="form-text text-muted d-block">Creates a short video based on your story</small>
-                        </div>
-
-                        <!-- Add video duration selection -->
-                        <div id="videoDuration" class="mt-2 d-none">
-                            <select class="form-select" id="video_duration" name="video_duration">
-                                <option value="10">10 seconds</option>
-                                <option value="15" selected>15 seconds</option>
-                                <option value="30">30 seconds</option>
-                            </select>
-                            <small class="form-text text-muted">Select video duration</small>
-                        </div>
-
-                        <!-- Add video preview section -->
-                        <div id="videoPreview" class="mt-3 d-none">
-                            <label class="form-label">Video Preview</label>
-                            <div class="text-center">
-                                <video id="generatedVideo" controls class="w-100">
-                                    <source src="" type="video/mp4">
-                                    Your browser does not support the video element.
-                                </video>
-                                <div id="videoGenerationStatus" class="mt-2"></div>
-                            </div>
-                        </div>
-                    </div>
-
-
                     <div class="text-center">
                         <button type="submit" class="btn btn-primary">Submit Story</button>
-                        <button type="button" class="btn btn-outline-secondary share-btn ms-2" style="display: none;">
-                            <i data-feather="share-2"></i> Share Story
-                        </button>
                     </div>
                 </form>
             </div>
@@ -202,11 +165,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const audioPreview = document.getElementById('audioPreview');
     const generatedAudio = document.getElementById('generatedAudio');
     const audioStatus = document.getElementById('audioGenerationStatus');
-    const generateVideoCheckbox = document.getElementById('generate_video');
-    const videoDuration = document.getElementById('videoDuration');
-    const videoPreview = document.getElementById('videoPreview');
-    const generatedVideo = document.getElementById('generatedVideo');
-    const videoStatus = document.getElementById('videoGenerationStatus');
 
     // Add loading overlay
     const loadingOverlay = document.createElement('div');
@@ -510,169 +468,13 @@ document.addEventListener('DOMContentLoaded', function() {
             audioStatus.innerHTML = '';
         }
     });
-
-    // Add video generation handling
-    generateVideoCheckbox.addEventListener('change', async function() {
-        if (this.checked) {
-            if (!title.value || !content.value) {
-                alert('Please fill in the title and story content before generating a video.');
-                this.checked = false;
-                return;
-            }
-
-            videoDuration.classList.remove('d-none');
-            try {
-                showLoading('Generating story video...');
-                videoPreview.classList.remove('d-none');
-                videoStatus.innerHTML = '<div class="alert alert-info">Generating video...</div>';
-
-                const response = await fetch('/api/generate-video', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        title: title.value,
-                        content: content.value,
-                        duration: parseInt(document.getElementById('video_duration').value)
-                    })
-                });
-
-                const data = await response.json();
-                if (data.success && data.video_url) {
-                    generatedVideo.src = data.video_url;
-                    generatedVideo.load();
-                    videoStatus.innerHTML = '<div class="alert alert-success">Video generated successfully!</div>';
-                } else {
-                    throw new Error(data.error || 'Failed to generate video');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                videoStatus.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
-                this.checked = false;
-            } finally {
-                hideLoading();
-            }
-        } else {
-            videoDuration.classList.add('d-none');
-            videoPreview.classList.add('d-none');
-            generatedVideo.src = '';
-            videoStatus.innerHTML = '';
-        }
-    });
-
-    // Add share functionality
-    const shareButton = document.querySelector('.share-btn');
-
-    function initializeSharing(storyUrl) {
-        shareButton.style.display = 'inline-block';
-        shareButton.addEventListener('click', async function() {
-            const storyTitle = document.getElementById('title').value;
-            const shareData = {
-                title: storyTitle,
-                text: "Check out this amazing cultural story!",
-                url: storyUrl
-            };
-
-            try {
-                if (navigator.share) {
-                    await navigator.share(shareData);
-                    trackShare('native', storyUrl);
-                } else {
-                    // Fallback to custom share dialog
-                    const shareDialog = document.createElement('div');
-                    shareDialog.className = 'share-dialog position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center';
-                    shareDialog.style.backgroundColor = 'rgba(0,0,0,0.5)';
-                    shareDialog.style.zIndex = '1000';
-
-                    const dialogContent = document.createElement('div');
-                    dialogContent.className = 'bg-white p-4 rounded shadow';
-                    dialogContent.innerHTML = `
-                        <h5 class="mb-3">Share this story</h5>
-                        <div class="d-flex gap-2 mb-3">
-                            <button class="btn btn-outline-primary" onclick="window.open('https://twitter.com/intent/tweet?text=${encodeURIComponent(shareData.text)}&url=${encodeURIComponent(shareData.url)}', '_blank')">
-                                Twitter/X
-                            </button>
-                            <button class="btn btn-outline-primary" onclick="window.open('https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareData.url)}', '_blank')">
-                                Facebook
-                            </button>
-                            <button class="btn btn-outline-primary" onclick="window.open('https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(shareData.url)}&title=${encodeURIComponent(shareData.title)}', '_blank')">
-                                LinkedIn
-                            </button>
-                        </div>
-                        <button class="btn btn-secondary" onclick="this.closest('.share-dialog').remove()">Close</button>
-                    `;
-                    shareDialog.appendChild(dialogContent);
-                    document.body.appendChild(shareDialog);
-                }
-            } catch (err) {
-                console.error('Error sharing:', err);
-            }
-        });
-    }
-
-    // Track shares
-    async function trackShare(platform, url) {
-        try {
-            const response = await fetch('/api/track-share', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    platform,
-                    url
-                })
-            });
-            const data = await response.json();
-            console.log('Share tracked:', data);
-        } catch (error) {
-            console.error('Error tracking share:', error);
-        }
-    }
-
-    // Initialize share button after successful story submission
-    form.addEventListener('submit', async function(e) {
-        e.preventDefault();
-        try {
-            const response = await fetch(this.action, {
-                method: 'POST',
-                body: new FormData(this)
-            });
-            const data = await response.json();
-            if (data.success && data.story_url) {
-                initializeSharing(data.story_url);
-            } else {
-                console.error("Story submission failed:", data.error);
-            }
-        } catch (error) {
-            console.error('Error submitting story:', error);
-        }
-    });
 });
-
 </script>
 
 <style>
 .suggested-tag:hover {
     background-color: #6c757d !important;
     opacity: 0.9;
-}
-
-.share-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: background-color 0.3s ease;
-}
-
-.share-btn:hover {
-    background-color: #f8f9fa;
-    border-color: #6c757d;
-}
-
-.share-dialog button {
-    min-width: 120px;
 }
 </style>
 {% endblock %}
