@@ -10,8 +10,9 @@ class AudioService:
     def __init__(self):
         self.api_key = os.environ.get('ELEVENLABS_API_KEY')
         self.base_url = "https://api.elevenlabs.io/v1"
-        self.default_voice = "Bella"  # Default voice for narration
+        self.default_voice = "Aria"  # Changed from Bella to Aria
         self.is_available = False
+        self.available_voices = [] # Initialize available_voices
         self._check_availability()
 
     def _check_availability(self):
@@ -31,9 +32,14 @@ class AudioService:
             if response.status_code == 200:
                 self.is_available = True
                 logger.info("ElevenLabs service is available")
-                # Log available voices for debugging
-                voices = response.json().get("voices", [])
-                logger.info(f"Available voices: {[voice['name'] for voice in voices]}")
+                # Store available voices for later use
+                self.available_voices = [voice['name'] for voice in response.json().get("voices", [])]
+                logger.info(f"Available voices: {', '.join(self.available_voices)}")
+
+                # Verify default voice exists
+                if self.default_voice not in self.available_voices:
+                    self.default_voice = self.available_voices[0] if self.available_voices else None
+                    logger.warning(f"Default voice not found, using {self.default_voice}")
             else:
                 error_msg = response.json() if response.text else "No error details available"
                 logger.warning(f"ElevenLabs service not available. Status code: {response.status_code}, Error: {error_msg}")
@@ -59,8 +65,16 @@ class AudioService:
             return {"success": False, "error": "No text provided"}
 
         try:
-            # Get voice ID for the requested voice name
+            # Use provided voice or default
             voice_name = voice_name or self.default_voice
+
+            # Verify voice exists
+            if voice_name not in self.available_voices:
+                logger.warning(f"Requested voice '{voice_name}' not found. Available voices: {', '.join(self.available_voices)}")
+                voice_name = self.default_voice
+                logger.info(f"Falling back to default voice: {voice_name}")
+
+            # Get voice ID for the requested voice name
             voice_id = self._get_voice_id(voice_name)
             if not voice_id:
                 return {"success": False, "error": f"Voice '{voice_name}' not found"}
@@ -113,9 +127,7 @@ class AudioService:
                     if voice["name"].lower() == voice_name.lower():
                         return voice["voice_id"]
 
-                # If voice not found, log available voices
-                available_voices = [voice["name"] for voice in voices]
-                logger.warning(f"Voice '{voice_name}' not found. Available voices: {', '.join(available_voices)}")
+                logger.warning(f"Voice '{voice_name}' not found. Available voices: {', '.join([v['name'] for v in voices])}")
                 return None
 
             logger.error(f"Error fetching voices: {response.text}")

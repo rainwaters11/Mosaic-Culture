@@ -684,7 +684,7 @@ def generate_audio():
     try:
         data = request.get_json()
         content = data.get("content")
-        voice_name = data.get("voice", "Bella")  # Default to Bella if no voice specified
+        voice_name = data.get("voice", "Aria")  # Default to Aria instead of Bella
 
         if not content:
             return jsonify({
