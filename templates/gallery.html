@@ -33,7 +33,7 @@
 <div class="row">
     {% for story in stories %}
     <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card h-100">
+        <div class="card h-100 fade-in">
             {% if story.media_path %}
             <img src="{{ url_for('static', filename='uploads/' + story.media_path) }}" class="card-img-top" alt="{{ story.title }}">
             {% endif %}
@@ -77,15 +77,18 @@
                     <!-- Social Media Sharing Buttons -->
                     <div class="share-buttons d-inline-block">
                         <button class="btn btn-sm btn-outline-info" 
-                                onclick="return shareStory('twitter', '{{ request.url_root }}story/{{ story.id }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
+                                onclick="return shareStory('twitter', '{{ request.url_root }}story/{{ story.id }}', '{{ story.title }}', '{{ story.content[:200] }}...')"
+                                data-tooltip="Share on Twitter">
                             <i class="fab fa-twitter"></i>
                         </button>
                         <button class="btn btn-sm btn-outline-primary" 
-                                onclick="return shareStory('facebook', '{{ request.url_root }}story/{{ story.id }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
+                                onclick="return shareStory('facebook', '{{ request.url_root }}story/{{ story.id }}', '{{ story.title }}', '{{ story.content[:200] }}...')"
+                                data-tooltip="Share on Facebook">
                             <i class="fab fa-facebook"></i>
                         </button>
                         <button class="btn btn-sm btn-outline-secondary" 
-                                onclick="return shareStory('linkedin', '{{ request.url_root }}story/{{ story.id }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
+                                onclick="return shareStory('linkedin', '{{ request.url_root }}story/{{ story.id }}', '{{ story.title }}', '{{ story.content[:200] }}...')"
+                                data-tooltip="Share on LinkedIn">
                             <i class="fab fa-linkedin"></i>
                         </button>
                     </div>

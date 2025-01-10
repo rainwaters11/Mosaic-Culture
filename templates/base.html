@@ -149,6 +149,17 @@
 
         // Social Media Sharing
         function shareStory(platform, url, title, description) {
+            if (navigator.share && platform === 'native') {
+                navigator.share({
+                    title: title,
+                    text: description,
+                    url: url
+                })
+                .then(() => console.log('Successful share'))
+                .catch((error) => console.log('Error sharing:', error));
+                return false;
+            }
+
             const shareUrls = {
                 twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`,
                 facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
