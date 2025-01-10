@@ -39,7 +39,7 @@
                data-title="{{ story.title }}"
                data-image="{{ story.media_url }}"
                data-region="{{ story.region }}"
-               data-author="By {{ story.author.username }} on {{ story.submission_date.strftime('%B %d, %Y') }}"
+               data-author="By {{ story.author.username }} on {{ story.submission_date.strftime('%B %d, %Y') if story.submission_date else 'Date not available' }}"
                data-excerpt="{{ story.content[:300] }}..."
                data-url="{{ url_for('view_story', story_id=story.id) }}"
                data-likes="{{ story.likes|length }}"
@@ -53,7 +53,7 @@
                 <p class="card-text">{{ story.content[:200] }}...</p>
                 <div class="story-meta">
                     <span class="badge bg-secondary">{{ story.region }}</span>
-                    <small class="text-muted d-block mt-2">By {{ story.author.username }} on {{ story.submission_date.strftime('%B %d, %Y') }}</small>
+                    <small class="text-muted d-block mt-2">By {{ story.author.username }} on {{ story.submission_date.strftime('%B %d, %Y') if story.submission_date else 'Date not available' }}</small>
                 </div>
 
                 {% if story.tags %}
@@ -107,7 +107,7 @@
                             <div class="comment mb-3">
                                 <div class="comment-content">
                                     <strong>{{ comment.author.username }}</strong>
-                                    <small class="text-muted">{{ comment.timestamp.strftime('%B %d, %Y %H:%M') }}</small>
+                                    <small class="text-muted">{{ comment.timestamp.strftime('%B %d, %Y %H:%M') if comment.timestamp else 'Time not available' }}</small>
                                     <p class="mb-1">{{ comment.content }}</p>
                                 </div>
                             </div>
