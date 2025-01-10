@@ -10,7 +10,7 @@ class VideoService:
     def __init__(self):
         """Initialize video generation service"""
         self.api_key = os.environ.get('RUNWAYML_API_KEY')
-        # Base URL for RunwayML API - updated domain
+        # Base URL for RunwayML API updated with correct endpoint
         self.api_url = "https://api.runwayml.com/v1"
         self.is_available = bool(self.api_key)
 
@@ -58,8 +58,8 @@ class VideoService:
                 "Accept": "application/json"
             }
 
-            # Make the API request to text-to-video endpoint
-            endpoint = f"{self.api_url}/text-to-video/generations"
+            # Make the API request to inference endpoint
+            endpoint = f"{self.api_url}/inference"
             logger.info(f"Requesting video generation for story: {title}")
             logger.debug(f"Using endpoint: {endpoint}")
 
