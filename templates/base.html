@@ -197,6 +197,112 @@
             padding: 2rem 0;
             margin-top: 4rem;
         }
+
+        /* Welcome Screen Styles */
+        .welcome-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.5s ease, visibility 0.5s;
+        }
+
+        .welcome-screen.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .welcome-content {
+            max-width: 800px;
+            padding: 2rem;
+            color: white;
+            text-align: center;
+            position: relative;
+        }
+
+        .welcome-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .welcome-screen.active .welcome-title {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 0.3s;
+        }
+
+        .inspiration-carousel {
+            margin: 2rem 0;
+            height: 150px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .inspiration-slide {
+            position: absolute;
+            width: 100%;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .inspiration-slide.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .welcome-close {
+            position: absolute;
+            top: 2rem;
+            right: 2rem;
+            color: white;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .welcome-close:hover {
+            opacity: 1;
+        }
+
+        .welcome-button {
+            background-color: white;
+            color: var(--primary-color);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            margin-top: 2rem;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+
+        .welcome-screen.active .welcome-button {
+            opacity: 1;
+            transform: translateY(0);
+            transition-delay: 0.6s;
+        }
+
+        .welcome-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
     </style>
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
 </head>
@@ -268,6 +374,31 @@
         </div>
     </footer>
 
+    <!-- Welcome Screen -->
+    <div class="welcome-screen" id="welcomeScreen">
+        <div class="welcome-content">
+            <button class="welcome-close" id="welcomeClose">
+                <i class="fas fa-times"></i>
+            </button>
+            <h1 class="welcome-title">Welcome to Mosaic Culture</h1>
+            <div class="inspiration-carousel" id="inspirationCarousel">
+                <div class="inspiration-slide">
+                    <p class="h3">"Every story is a thread in the tapestry of human experience."</p>
+                </div>
+                <div class="inspiration-slide">
+                    <p class="h3">"Share your heritage, shape our future."</p>
+                </div>
+                <div class="inspiration-slide">
+                    <p class="h3">"Your culture is a gift to the world."</p>
+                </div>
+                <div class="inspiration-slide">
+                    <p class="h3">"Stories connect us across oceans of difference."</p>
+                </div>
+            </div>
+            <button class="welcome-button" id="welcomeButton">Begin Your Journey</button>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -296,6 +427,48 @@
                     setTimeout(() => alert.remove(), 150);
                 }, 5000);
             });
+
+            // Welcome Screen Logic
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            const welcomeClose = document.getElementById('welcomeClose');
+            const welcomeButton = document.getElementById('welcomeButton');
+            const inspirationSlides = document.querySelectorAll('.inspiration-slide');
+            let currentSlide = 0;
+
+            // Show welcome screen if it's the first visit
+            if (!localStorage.getItem('welcomeShown')) {
+                setTimeout(() => {
+                    welcomeScreen.classList.add('active');
+                    showSlide(0);
+                    startSlideshow();
+                }, 500);
+            }
+
+            // Close welcome screen
+            function closeWelcomeScreen() {
+                welcomeScreen.classList.remove('active');
+                localStorage.setItem('welcomeShown', 'true');
+            }
+
+            welcomeClose.addEventListener('click', closeWelcomeScreen);
+            welcomeButton.addEventListener('click', closeWelcomeScreen);
+
+            // Carousel functionality
+            function showSlide(index) {
+                inspirationSlides.forEach(slide => {
+                    slide.classList.remove('active');
+                });
+                inspirationSlides[index].classList.add('active');
+            }
+
+            function nextSlide() {
+                currentSlide = (currentSlide + 1) % inspirationSlides.length;
+                showSlide(currentSlide);
+            }
+
+            function startSlideshow() {
+                setInterval(nextSlide, 4000); // Change slide every 4 seconds
+            }
         });
     </script>
 </body>
