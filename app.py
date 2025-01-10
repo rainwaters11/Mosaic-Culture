@@ -13,6 +13,7 @@ from services.badge_service import BadgeService
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # Create the app
 app = Flask(__name__)
@@ -43,7 +44,17 @@ storage_service = StorageService()
 badge_service = BadgeService()
 
 # Import models after db initialization
-from models import User, Story, Comment, StoryLike, Tag
+from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge
+
+# Initialize database and create default badges
+logger.info("Initializing database and default badges...")
+with app.app_context():
+    try:
+        db.create_all()
+        badge_service.initialize_default_badges()
+        logger.info("Database and badges initialized successfully")
+    except Exception as e:
+        logger.error(f"Error initializing database: {str(e)}")
 
 @login_manager.user_loader
 def load_user(id):
@@ -255,7 +266,3 @@ def profile():
     user_badges = badge_service.get_user_badges(current_user)
     user_stories = Story.query.filter_by(user_id=current_user.id).order_by(Story.submission_date.desc()).all()
     return render_template("profile.html", badges=user_badges, stories=user_stories)
-
-with app.app_context():
-    db.create_all()
-    badge_service.initialize_default_badges()
