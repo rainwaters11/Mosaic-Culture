@@ -29,7 +29,7 @@
                      class="card-img-top" 
                      alt="{{ story.title }}">
                 {% endif %}
-                
+
                 <div class="card-body">
                     <h1 class="card-title">{{ story.title }}</h1>
                     <div class="story-meta mb-3">
@@ -62,30 +62,44 @@
                     </div>
                     {% endif %}
 
-                    {% if story.soundtrack_url %}
-                    <div class="soundtrack-player mb-3">
-                        <h5>Background Music</h5>
-                        <audio controls class="w-100">
-                            <source src="{{ story.soundtrack_url }}" type="audio/mpeg">
-                            Your browser does not support the audio element.
-                        </audio>
-                    </div>
-                    {% endif %}
+                    <div class="action-buttons mb-4">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Share this Story</h5>
+                                <button class="btn btn-outline-info me-2" 
+                                        onclick="return shareStory('twitter', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
+                                    <i class="fab fa-twitter"></i> Share on Twitter
+                                </button>
+                                <button class="btn btn-outline-primary me-2" 
+                                        onclick="return shareStory('facebook', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
+                                    <i class="fab fa-facebook"></i> Share on Facebook
+                                </button>
+                                <button class="btn btn-outline-secondary" 
+                                        onclick="return shareStory('linkedin', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
+                                    <i class="fab fa-linkedin"></i> Share on LinkedIn
+                                </button>
+                            </div>
 
-                    <div class="share-buttons mb-4">
-                        <h5>Share this Story</h5>
-                        <button class="btn btn-outline-info me-2" 
-                                onclick="return shareStory('twitter', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
-                            <i class="fab fa-twitter"></i> Share on Twitter
-                        </button>
-                        <button class="btn btn-outline-primary me-2" 
-                                onclick="return shareStory('facebook', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
-                            <i class="fab fa-facebook"></i> Share on Facebook
-                        </button>
-                        <button class="btn btn-outline-secondary" 
-                                onclick="return shareStory('linkedin', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
-                            <i class="fab fa-linkedin"></i> Share on LinkedIn
-                        </button>
+                            <div class="col-md-6">
+                                <h5>Export Story</h5>
+                                {% if current_user.is_authenticated and (current_user.id == story.user_id or current_user.is_admin) %}
+                                <div class="btn-group">
+                                    <a href="{{ url_for('export_story', story_id=story.id, format='pdf') }}" 
+                                       class="btn btn-outline-primary me-2">
+                                        <i class="fas fa-file-pdf"></i> PDF
+                                    </a>
+                                    <a href="{{ url_for('export_story', story_id=story.id, format='epub') }}" 
+                                       class="btn btn-outline-success me-2">
+                                        <i class="fas fa-book"></i> EPUB
+                                    </a>
+                                    <a href="{{ url_for('export_story', story_id=story.id, format='txt') }}" 
+                                       class="btn btn-outline-secondary">
+                                        <i class="fas fa-file-alt"></i> TXT
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

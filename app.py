@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required
 from flask_caching import Cache
 from werkzeug.utils import secure_filename
@@ -14,6 +14,8 @@ from services.badge_service import BadgeService
 from services.story_service import StoryService
 from services.tag_service import TagService
 from services.cultural_context_service import CulturalContextService
+from services.export_service import ExportService
+from functools import wraps
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -98,6 +100,13 @@ def init_services():
     except Exception as e:
         logger.error(f"Error initializing cultural context service: {str(e)}")
         services['cultural_context'] = None
+
+    try:
+        services['export'] = ExportService()
+        logger.info("Export service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing export service: {str(e)}")
+        services['export'] = None
 
     return services
 
@@ -686,3 +695,69 @@ def view_story(story_id):
     """View a single story, used for social media sharing"""
     story = Story.query.get_or_404(story_id)
     return render_template("view_story.html", story=story)
+
+
+@app.route("/export/<int:story_id>/<format>")
+@login_required
+def export_story(story_id, format):
+    """Export story in the specified format"""
+    story = Story.query.get_or_404(story_id)
+
+    # Check if user has permission to export
+    if story.user_id != current_user.id and not current_user.is_admin:
+        flash("You don't have permission to export this story", "error")
+        return redirect(url_for('view_story', story_id=story_id))
+
+    if not services['export']:
+        flash("Export service is not available", "error")
+        return redirect(url_for('view_story', story_id=story_id))
+
+    try:
+        if format == 'pdf':
+            file_path = services['export'].export_to_pdf(story)
+            mime_type = 'application/pdf'
+        elif format == 'epub':
+            file_path = services['export'].export_to_epub(story)
+            mime_type = 'application/epub+zip'
+        elif format == 'txt':
+            file_path = services['export'].export_to_txt(story)
+            mime_type = 'text/plain'
+        else:
+            flash("Unsupported export format", "error")
+            return redirect(url_for('view_story', story_id=story_id))
+
+        if not file_path:
+            flash(f"Error exporting story to {format.upper()}", "error")
+            return redirect(url_for('view_story', story_id=story_id))
+
+        def after_this_request(f):
+            @wraps(f)
+            def decorator(*args, **kwargs):
+                resp = f(*args, **kwargs)
+                resp.call_on_close(remove_file)
+                return resp
+            return decorator
+
+
+        response = send_file(
+            file_path,
+            mimetype=mime_type,
+            as_attachment=True,
+            download_name=f"{story.title.lower().replace(' ', '_')}.{format}"
+        )
+
+        # Delete temporary file after sending
+        @after_this_request
+        def remove_file(response):
+            try:
+                os.unlink(file_path)
+            except Exception as e:
+                app.logger.error(f"Error removing temporary file: {str(e)}")
+            return response
+
+        return response
+
+    except Exception as e:
+        app.logger.error(f"Error exporting story: {str(e)}")
+        flash("Error exporting story", "error")
+        return redirect(url_for('view_story', story_id=story_id))
