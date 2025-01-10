@@ -526,3 +526,9 @@ def generate_soundtrack():
     except Exception as e:
         logger.error(f"Error generating soundtrack: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/story/<int:story_id>")
+def view_story(story_id):
+    """View a single story, used for social media sharing"""
+    story = Story.query.get_or_404(story_id)
+    return render_template("view_story.html", story=story)

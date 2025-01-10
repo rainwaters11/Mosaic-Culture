@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}{{ story.title }}{% endblock %}
+
+{% block og_title %}{{ story.title }}{% endblock %}
+{% block og_description %}{{ story.content[:200] }}...{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block og_image %}
+    {% if story.generated_image_url %}
+        {{ story.generated_image_url }}
+    {% elif story.media_url %}
+        {{ story.media_url }}
+    {% else %}
+        {{ url_for('static', filename='images/default-share.jpg', _external=True) }}
+    {% endif %}
+{% endblock %}
+
+{% block twitter_title %}{{ story.title }}{% endblock %}
+{% block twitter_description %}{{ story.content[:200] }}...{% endblock %}
+{% block twitter_image %}{{ self.og_image() }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                {% if story.generated_image_url or story.media_url %}
+                <img src="{{ story.generated_image_url or story.media_url }}" 
+                     class="card-img-top" 
+                     alt="{{ story.title }}">
+                {% endif %}
+                
+                <div class="card-body">
+                    <h1 class="card-title">{{ story.title }}</h1>
+                    <div class="story-meta mb-3">
+                        <span class="badge bg-secondary">{{ story.region }}</span>
+                        <small class="text-muted">By {{ story.author.username }} on {{ story.submission_date.strftime('%B %d, %Y') }}</small>
+                    </div>
+
+                    {% if story.tags %}
+                    <div class="story-tags mb-3">
+                        {% for tag in story.tags %}
+                        <a href="{{ url_for('gallery', tag=tag.name) }}" 
+                           class="badge bg-light text-dark text-decoration-none">
+                            #{{ tag.name }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="story-content mb-4">
+                        {{ story.content|safe }}
+                    </div>
+
+                    {% if story.audio_url %}
+                    <div class="audio-player mb-3">
+                        <h5>Listen to the Story</h5>
+                        <audio controls class="w-100">
+                            <source src="{{ story.audio_url }}" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                    {% endif %}
+
+                    {% if story.soundtrack_url %}
+                    <div class="soundtrack-player mb-3">
+                        <h5>Background Music</h5>
+                        <audio controls class="w-100">
+                            <source src="{{ story.soundtrack_url }}" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                    {% endif %}
+
+                    <div class="share-buttons mb-4">
+                        <h5>Share this Story</h5>
+                        <button class="btn btn-outline-info me-2" 
+                                onclick="return shareStory('twitter', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
+                            <i class="fab fa-twitter"></i> Share on Twitter
+                        </button>
+                        <button class="btn btn-outline-primary me-2" 
+                                onclick="return shareStory('facebook', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
+                            <i class="fab fa-facebook"></i> Share on Facebook
+                        </button>
+                        <button class="btn btn-outline-secondary" 
+                                onclick="return shareStory('linkedin', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
+                            <i class="fab fa-linkedin"></i> Share on LinkedIn
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
