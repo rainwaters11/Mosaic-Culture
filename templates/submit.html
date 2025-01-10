@@ -102,6 +102,32 @@
                             </label>
                             <small class="form-text text-muted d-block">Uses AI to create an audio version of your story</small>
                         </div>
+
+                        <!-- Add voice selection dropdown -->
+                        <div id="voiceSelection" class="mt-2 d-none">
+                            <select class="form-select" id="voice_selection" name="voice">
+                                <option value="Bella">Bella (Default)</option>
+                                <option value="Antoni">Antoni</option>
+                                <option value="Arnold">Arnold</option>
+                                <option value="Adam">Adam</option>
+                                <option value="Domi">Domi</option>
+                                <option value="Elli">Elli</option>
+                                <option value="Josh">Josh</option>
+                            </select>
+                            <small class="form-text text-muted">Select a voice for the narration</small>
+                        </div>
+
+                        <!-- Add audio preview section -->
+                        <div id="audioPreview" class="mt-3 d-none">
+                            <label class="form-label">Audio Preview</label>
+                            <div class="text-center">
+                                <audio id="generatedAudio" controls class="w-100">
+                                    <source src="" type="audio/mpeg">
+                                    Your browser does not support the audio element.
+                                </audio>
+                                <div id="audioGenerationStatus" class="mt-2"></div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -175,6 +201,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const imageStatus = document.getElementById('imageGenerationStatus');
     const title = document.getElementById('title');
     const content = document.getElementById('content');
+    const voiceSelection = document.getElementById('voiceSelection');
+    const audioPreview = document.getElementById('audioPreview');
+    const generatedAudio = document.getElementById('generatedAudio');
+    const audioStatus = document.getElementById('audioGenerationStatus');
 
 
     // Add loading overlay
@@ -567,6 +597,57 @@ document.addEventListener('DOMContentLoaded', function() {
             imagePreview.classList.add('d-none');
             generatedImage.src = '';
             imageStatus.innerHTML = '';
+        }
+    });
+
+    // Handle audio generation
+    generateAudioCheckbox.addEventListener('change', async function() {
+        if (this.checked) {
+            if (!content.value) {
+                alert('Please write your story content before generating audio narration.');
+                this.checked = false;
+                return;
+            }
+
+            // Show voice selection
+            voiceSelection.classList.remove('d-none');
+
+            try {
+                showLoading('Generating audio narration...');
+                audioPreview.classList.remove('d-none');
+                audioStatus.innerHTML = '<div class="alert alert-info">Generating audio narration...</div>';
+
+                const response = await fetch('/api/generate-audio', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        content: content.value,
+                        voice: document.getElementById('voice_selection').value
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success && data.audio_url) {
+                    generatedAudio.src = data.audio_url;
+                    generatedAudio.load(); // Reload the audio element with the new source
+                    audioStatus.innerHTML = '<div class="alert alert-success">Audio generated successfully!</div>';
+                } else {
+                    throw new Error(data.error || 'Failed to generate audio');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                audioStatus.innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+                this.checked = false;
+            } finally {
+                hideLoading();
+            }
+        } else {
+            voiceSelection.classList.add('d-none');
+            audioPreview.classList.add('d-none');
+            generatedAudio.src = '';
+            audioStatus.innerHTML = '';
         }
     });
 });
