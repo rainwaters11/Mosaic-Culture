@@ -88,6 +88,19 @@ class Story(db.Model):
             .limit(limit)\
             .all()
 
+    @classmethod
+    def get_story_of_the_day(cls):
+        """Get a random story for the story of the day feature"""
+        from sqlalchemy.sql.expression import func
+        # Get a random story that has an image (either uploaded or generated)
+        return cls.query\
+            .filter(db.or_(
+                cls.media_url.isnot(None),
+                cls.generated_image_url.isnot(None)
+            ))\
+            .order_by(func.random())\
+            .first()
+
 class Tag(db.Model):
     __tablename__ = 'tags'
     id = db.Column(db.Integer, primary_key=True)

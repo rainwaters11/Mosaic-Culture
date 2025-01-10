@@ -14,6 +14,57 @@
     </div>
 </div>
 
+<!-- Story of the Day Section -->
+{% if story_of_the_day %}
+<div class="container mb-5">
+    <div class="story-of-day-section">
+        <h2 class="section-title text-center">Story of the Day</h2>
+        <div class="card story-highlight">
+            {% if story_of_the_day.generated_image_url or story_of_the_day.media_url %}
+            <img src="{{ story_of_the_day.generated_image_url or story_of_the_day.media_url }}" 
+                 class="card-img-top" 
+                 alt="{{ story_of_the_day.title }}"
+                 style="height: 400px; object-fit: cover;">
+            {% endif %}
+            <div class="card-body">
+                <h3 class="card-title">{{ story_of_the_day.title }}</h3>
+                <div class="story-meta mb-3">
+                    <span class="badge bg-secondary">{{ story_of_the_day.region }}</span>
+                    <small class="text-muted d-block mt-2">
+                        By {{ story_of_the_day.author.username }}
+                        {% if story_of_the_day.submission_date %}
+                            on {{ story_of_the_day.submission_date.strftime('%B %d, %Y') }}
+                        {% endif %}
+                    </small>
+                </div>
+                <p class="card-text">{{ story_of_the_day.content[:300] }}...</p>
+                {% if story_of_the_day.tags %}
+                <div class="story-tags mb-3">
+                    {% for tag in story_of_the_day.tags[:5] %}
+                    <span class="badge bg-light text-dark">#{{ tag.name }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{{ url_for('view_story', story_id=story_of_the_day.id) }}" 
+                       class="btn btn-primary">Read Full Story</a>
+                    <div class="engagement-stats">
+                        <span class="me-3">
+                            <i class="fas fa-heart text-danger"></i> 
+                            {{ story_of_the_day.likes|length }}
+                        </span>
+                        <span>
+                            <i class="fas fa-comment text-primary"></i> 
+                            {{ story_of_the_day.comments|length }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Statistics Section -->
 <div class="container">
     <div class="row text-center mb-5">

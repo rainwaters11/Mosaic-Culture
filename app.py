@@ -135,6 +135,10 @@ def load_user(id):
 def index():
     """Home page with featured stories"""
     try:
+        # Get story of the day
+        story_of_the_day = Story.get_story_of_the_day()
+        app.logger.debug(f"Story of the day: {story_of_the_day.title if story_of_the_day else 'None'}")
+
         # Get featured stories (most liked and commented)
         featured_stories = (
             Story.query
@@ -159,13 +163,17 @@ def index():
 
         return render_template(
             "index.html",
+            story_of_the_day=story_of_the_day,
             featured_stories=featured_stories,
             recent_stories=recent_stories
         )
     except Exception as e:
         app.logger.error(f"Error in index route: {str(e)}")
         flash("Error loading stories", "error")
-        return render_template("index.html", featured_stories=[], recent_stories=[])
+        return render_template("index.html", 
+                             story_of_the_day=None,
+                             featured_stories=[], 
+                             recent_stories=[])
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
