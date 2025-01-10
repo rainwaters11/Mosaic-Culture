@@ -29,7 +29,7 @@
                      class="card-img-top" 
                      alt="{{ story.title }}">
                 {% endif %}
-                
+
                 <div class="card-body">
                     <h1 class="card-title">{{ story.title }}</h1>
                     <div class="story-meta mb-3">
@@ -52,39 +52,46 @@
                         {{ story.content|safe }}
                     </div>
 
-                    {% if story.audio_url %}
-                    <div class="audio-player mb-3">
-                        <h5>Listen to the Story</h5>
-                        <audio controls class="w-100">
-                            <source src="{{ story.audio_url }}" type="audio/mpeg">
-                            Your browser does not support the audio element.
-                        </audio>
+                    <!-- Export Section -->
+                    <div class="export-section mb-4">
+                        <h5><i class="fas fa-download me-2"></i>Export Story</h5>
+                        <div class="btn-group" role="group" aria-label="Export options">
+                            <a href="{{ url_for('export_story', story_id=story.id, format='pdf') }}" 
+                               class="btn btn-outline-primary" 
+                               title="Download as PDF">
+                                <i class="fas fa-file-pdf me-2"></i>PDF
+                            </a>
+                            <a href="{{ url_for('export_story', story_id=story.id, format='epub') }}" 
+                               class="btn btn-outline-primary"
+                               title="Download as EPUB">
+                                <i class="fas fa-book me-2"></i>EPUB
+                            </a>
+                            <a href="{{ url_for('export_story', story_id=story.id, format='txt') }}" 
+                               class="btn btn-outline-primary"
+                               title="Download as Text">
+                                <i class="fas fa-file-alt me-2"></i>TXT
+                            </a>
+                            <a href="{{ url_for('export_story', story_id=story.id, format='json') }}" 
+                               class="btn btn-outline-primary"
+                               title="Download as JSON">
+                                <i class="fas fa-file-code me-2"></i>JSON
+                            </a>
+                        </div>
                     </div>
-                    {% endif %}
-
-                    {% if story.soundtrack_url %}
-                    <div class="soundtrack-player mb-3">
-                        <h5>Background Music</h5>
-                        <audio controls class="w-100">
-                            <source src="{{ story.soundtrack_url }}" type="audio/mpeg">
-                            Your browser does not support the audio element.
-                        </audio>
-                    </div>
-                    {% endif %}
 
                     <div class="share-buttons mb-4">
-                        <h5>Share this Story</h5>
+                        <h5><i class="fas fa-share-alt me-2"></i>Share this Story</h5>
                         <button class="btn btn-outline-info me-2" 
                                 onclick="return shareStory('twitter', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
-                            <i class="fab fa-twitter"></i> Share on Twitter
+                            <i class="fab fa-twitter me-2"></i>Share on Twitter
                         </button>
                         <button class="btn btn-outline-primary me-2" 
                                 onclick="return shareStory('facebook', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
-                            <i class="fab fa-facebook"></i> Share on Facebook
+                            <i class="fab fa-facebook me-2"></i>Share on Facebook
                         </button>
                         <button class="btn btn-outline-secondary" 
                                 onclick="return shareStory('linkedin', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
-                            <i class="fab fa-linkedin"></i> Share on LinkedIn
+                            <i class="fab fa-linkedin me-2"></i>Share on LinkedIn
                         </button>
                     </div>
                 </div>

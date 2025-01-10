@@ -1,6 +1,7 @@
 import os
 import logging
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+import io
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required
 from flask_caching import Cache
 from werkzeug.utils import secure_filename
@@ -14,6 +15,7 @@ from services.badge_service import BadgeService
 from services.story_service import StoryService
 from services.tag_service import TagService
 from services.cultural_context_service import CulturalContextService
+from services.export_service import ExportService
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -50,6 +52,13 @@ os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 def init_services():
     """Initialize all services and handle any initialization errors gracefully"""
     services = {}
+    try:
+        services['export'] = ExportService()
+        logger.info("Export service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing export service: {str(e)}")
+        services['export'] = None
+
     try:
         services['audio'] = AudioService()
         logger.info("Audio service initialized")
@@ -686,3 +695,82 @@ def view_story(story_id):
     """View a single story, used for social media sharing"""
     story = Story.query.get_or_404(story_id)
     return render_template("view_story.html", story=story)
+
+
+@app.route("/story/<int:story_id>/export/<format>")
+def export_story(story_id, format):
+    """Export story in various formats"""
+    try:
+        story = Story.query.get_or_404(story_id)
+
+        if format not in services['export'].supported_formats:
+            return jsonify({
+                "success": False,
+                "error": "Unsupported format"
+            }), 400
+
+        if not services['export']:
+            return jsonify({
+                "success": False,
+                "error": "Export service unavailable"
+            }), 503
+
+        # Generate appropriate filename
+        filename = f"{story.title.lower().replace(' ', '_')}_{datetime.datetime.now().strftime('%Y%m%d')}"
+
+        if format == 'pdf':
+            # Render template for PDF
+            html_content = render_template(
+                'story_export.html',
+                story=story
+            )
+            pdf_data = services['export'].export_to_pdf(story, html_content)
+            if pdf_data:
+                return send_file(
+                    io.BytesIO(pdf_data),
+                    mimetype='application/pdf',
+                    as_attachment=True,
+                    download_name=f"{filename}.pdf"
+                )
+
+        elif format == 'epub':
+            epub_data = services['export'].export_to_epub(story)
+            if epub_data:
+                return send_file(
+                    io.BytesIO(epub_data),
+                    mimetype='application/epub+zip',
+                    as_attachment=True,
+                    download_name=f"{filename}.epub"
+                )
+
+        elif format == 'txt':
+            txt_data = services['export'].export_to_txt(story)
+            if txt_data:
+                return send_file(
+                    io.BytesIO(txt_data),
+                    mimetype='text/plain',
+                    as_attachment=True,
+                    download_name=f"{filename}.txt"
+                )
+
+        elif format == 'json':
+            json_data = services['export'].export_to_json(story)
+            if json_data:
+                return send_file(
+                    io.BytesIO(json_data),
+                    mimetype='application/json',
+                    as_attachment=True,
+                    download_name=f"{filename}.json"
+                )
+
+        return jsonify({
+            "success": False,
+            "error": "Failed to generate export"
+        }), 500
+
+    except Exception as e:
+        logger.error(f"Error exporting story: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500

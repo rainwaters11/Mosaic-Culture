@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ story.title }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        h1 {
+            color: #2C3E50;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .story-meta {
+            color: #666;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .story-content {
+            text-align: justify;
+            margin-bottom: 2rem;
+        }
+        .story-tags {
+            color: #666;
+            font-style: italic;
+        }
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{ story.title }}</h1>
+    
+    <div class="story-meta">
+        <p>By: {{ story.author.username }}</p>
+        <p>Region: {{ story.region }}</p>
+        <p>Date: {{ story.submission_date.strftime('%B %d, %Y') }}</p>
+    </div>
+
+    <div class="story-content">
+        {{ story.content }}
+    </div>
+
+    {% if story.tags %}
+    <div class="story-tags">
+        Tags: {{ story.tags|map(attribute='name')|join(', ') }}
+    </div>
+    {% endif %}
+
+    <footer>
+        <p>Generated from Mosaic Culture</p>
+        <p>{{ datetime.now().strftime('%Y-%m-%d') }}</p>
+    </footer>
+</body>
+</html>
