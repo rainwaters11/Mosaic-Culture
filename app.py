@@ -43,7 +43,7 @@ storage_service = StorageService()
 badge_service = BadgeService()
 
 # Import models after db initialization
-from models import User, Story, Comment, Like, Tag
+from models import User, Story, Comment, StoryLike, Tag
 
 @login_manager.user_loader
 def load_user(id):
@@ -213,13 +213,13 @@ def gallery():
 @login_required
 def like_story(story_id):
     story = Story.query.get_or_404(story_id)
-    existing_like = Like.query.filter_by(story_id=story_id, user_id=current_user.id).first()
+    existing_like = StoryLike.query.filter_by(story_id=story_id, user_id=current_user.id).first()
 
     if existing_like:
         db.session.delete(existing_like)
         action = 'unliked'
     else:
-        like = Like(story_id=story_id, user_id=current_user.id)
+        like = StoryLike(story_id=story_id, user_id=current_user.id)
         db.session.add(like)
         action = 'liked'
 
