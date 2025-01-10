@@ -85,13 +85,20 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    <div class="alert alert-{{ category }} fade-in">{{ message }}</div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
 
         {% block content %}{% endblock %}
     </div>
+
+    <!-- Floating Action Button -->
+    {% if not request.endpoint == 'submit_story' %}
+    <a href="{{ url_for('submit_story') }}" class="fab" aria-label="Submit Story">
+        <i class="fas fa-plus"></i>
+    </a>
+    {% endif %}
 
     <footer class="footer mt-5 py-3">
         <div class="container text-center">
@@ -152,6 +159,28 @@
                 version: 'v18.0'
             });
         };
+
+        // Add animation classes to elements when they enter viewport
+        document.addEventListener('DOMContentLoaded', () => {
+            const animateOnScroll = (entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('fade-in');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            };
+
+            const observer = new IntersectionObserver(animateOnScroll, {
+                threshold: 0.1
+            });
+
+            // Observe all cards and sections for animation
+            document.querySelectorAll('.card, .hero-section').forEach(el => {
+                el.classList.remove('fade-in');  // Remove initial animation class
+                observer.observe(el);
+            });
+        });
     </script>
 </body>
 </html>
