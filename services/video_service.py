@@ -10,8 +10,8 @@ class VideoService:
     def __init__(self):
         """Initialize video generation service"""
         self.api_key = os.environ.get('RUNWAYML_API_KEY')
-        # Base URL for RunwayML API
-        self.api_url = "https://api.runway.ml/v1"
+        # Base URL for RunwayML API - updated domain
+        self.api_url = "https://api.runwayml.com/v1"
         self.is_available = bool(self.api_key)
 
         if not self.is_available:
