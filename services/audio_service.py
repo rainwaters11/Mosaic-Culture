@@ -46,7 +46,32 @@ class AudioService:
         except Exception as e:
             logger.error(f"Error checking ElevenLabs service: {str(e)}")
 
-    def generate_audio(self, text: str, voice_name: Optional[str] = None) -> Dict[str, Union[bool, bytes, str]]:
+    def _get_voice_id(self, voice_name: str) -> str | None:
+        """Get the voice ID for a given voice name"""
+        if not voice_name:
+            return None
+
+        try:
+            headers = {"xi-api-key": self.api_key}
+            response = requests.get(f"{self.base_url}/voices", headers=headers)
+
+            if response.status_code == 200:
+                voices = response.json().get("voices", [])
+                for voice in voices:
+                    if voice["name"].lower() == voice_name.lower():
+                        return voice["voice_id"]
+
+                logger.warning(f"Voice '{voice_name}' not found in available voices")
+                return None
+
+            logger.error(f"Error fetching voices: {response.text}")
+            return None
+
+        except Exception as e:
+            logger.error(f"Error fetching voices: {str(e)}")
+            return None
+
+    def generate_audio(self, text: str, voice_name: str | None = None) -> Dict[str, Union[bool, bytes, str]]:
         """
         Generate audio from text using ElevenLabs API
         Args:
@@ -122,28 +147,6 @@ class AudioService:
             error_msg = f"Error generating audio: {str(e)}"
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
-
-    def _get_voice_id(self, voice_name: str) -> Optional[str]:
-        """Get the voice ID for a given voice name"""
-        try:
-            headers = {"xi-api-key": self.api_key}
-            response = requests.get(f"{self.base_url}/voices", headers=headers)
-
-            if response.status_code == 200:
-                voices = response.json().get("voices", [])
-                for voice in voices:
-                    if voice["name"].lower() == voice_name.lower():
-                        return voice["voice_id"]
-
-                logger.warning(f"Voice '{voice_name}' not found in available voices")
-                return None
-
-            logger.error(f"Error fetching voices: {response.text}")
-            return None
-
-        except Exception as e:
-            logger.error(f"Error fetching voices: {str(e)}")
-            return None
 
     def get_available_voices(self) -> Dict[str, Union[bool, List[str], str]]:
         """Get a list of available voices"""

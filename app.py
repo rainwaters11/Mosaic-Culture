@@ -556,49 +556,19 @@ def generate_audio():
                 "error": "No data provided"
             }), 400
 
-        # Extract and validate story_id
-        story_id = data.get("story_id")
-        logger.debug(f"Received story_id: {story_id}")
-
-        if not story_id:
-            logger.error("No story_id provided in request data")
+        content = data.get("content")
+        if not content:
+            logger.error("No content provided in request data")
             return jsonify({
                 "success": False,
-                "error": "Missing story_id"
-            }), 400
-
-        try:
-            story_id = int(story_id)  # Ensure story_id is an integer
-        except (TypeError, ValueError):
-            logger.error(f"Invalid story_id format: {story_id}")
-            return jsonify({
-                "success": False,
-                "error": "Invalid story ID format"
+                "error": "Missing content"
             }), 400
 
         voice_name = data.get("voice", "Aria")  # Default to Aria voice
-        logger.debug(f"Generating audio for story {story_id} with voice {voice_name}")
-
-        # Fetch the story
-        story = Story.query.get(story_id)
-        if not story:
-            logger.error(f"Story not found with ID: {story_id}")
-            return jsonify({
-                "success": False,
-                "error": "Story not found"
-            }), 404
-
-        # Check if audio already exists
-        if story.audio_url:
-            logger.info(f"Audio already exists for story {story_id}")
-            return jsonify({
-                "success": True,
-                "audio_url": story.audio_url,
-                "message": "Audio already exists"
-            })
+        logger.debug(f"Generating audio with voice {voice_name}")
 
         # Generate audio
-        audio_result = services['audio'].generate_audio(story.content, voice_name)
+        audio_result = services['audio'].generate_audio(content, voice_name)
 
         if audio_result["success"]:
             try:
@@ -608,15 +578,11 @@ def generate_audio():
                     upload_result = services['storage'].upload_media(
                         audio_data,
                         resource_type="audio",
-                        public_id=f"audio_{story_id}_{datetime.datetime.utcnow().timestamp()}"
+                        public_id=f"audio_{datetime.datetime.utcnow().timestamp()}"
                     )
 
                     if upload_result and "url" in upload_result:
-                        # Save the audio URL to the story
-                        story.audio_url = upload_result["url"]
-                        db.session.commit()
-
-                        logger.info(f"Successfully generated and uploaded audio for story {story_id}")
+                        logger.info("Successfully generated and uploaded audio")
                         return jsonify({
                             "success": True,
                             "audio_url": upload_result["url"]
