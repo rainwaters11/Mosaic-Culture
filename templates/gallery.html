@@ -34,19 +34,30 @@
     {% for story in stories %}
     <div class="col-md-6 col-lg-4 mb-4">
         <div class="card h-100 fade-in">
-            {% if story.media_path %}
-            <img src="{{ url_for('static', filename='uploads/' + story.media_path) }}" class="card-img-top" alt="{{ story.title }}">
+            {% if story.media_url %}
+            <a href="#" class="story-preview-trigger"
+               data-title="{{ story.title }}"
+               data-image="{{ story.media_url }}"
+               data-region="{{ story.region }}"
+               data-author="By {{ story.author.username }} on {{ story.submission_date.strftime('%B %d, %Y') }}"
+               data-excerpt="{{ story.content[:300] }}..."
+               data-url="{{ url_for('view_story', story_id=story.id) }}"
+               data-likes="{{ story.likes|length }}"
+               data-comments="{{ story.comments|length }}"
+               data-tags="{{ story.tags|map(attribute='name')|list|tojson }}">
+                <img src="{{ story.media_url }}" class="card-img-top" alt="{{ story.title }}">
+            </a>
             {% endif %}
             <div class="card-body">
                 <h5 class="card-title">{{ story.title }}</h5>
                 <p class="card-text">{{ story.content[:200] }}...</p>
                 <div class="story-meta">
                     <span class="badge bg-secondary">{{ story.region }}</span>
-                    <small class="text-muted">By {{ story.author.username }} on {{ story.submission_date.strftime('%B %d, %Y') }}</small>
+                    <small class="text-muted d-block mt-2">By {{ story.author.username }} on {{ story.submission_date.strftime('%B %d, %Y') }}</small>
                 </div>
 
                 {% if story.tags %}
-                <div class="story-tags mt-2">
+                <div class="story-tags mt-3">
                     {% for tag in story.tags %}
                     <a href="{{ url_for('gallery', tag=tag.name) }}" 
                        class="badge bg-light text-dark text-decoration-none">
@@ -59,39 +70,25 @@
                 <div class="interactions mt-3">
                     {% if current_user.is_authenticated %}
                     <button class="btn btn-sm btn-outline-primary like-btn" data-story-id="{{ story.id }}">
-                        <i data-feather="heart"></i> 
+                        <i class="fas fa-heart"></i> 
                         <span class="like-count">{{ story.likes|length }}</span>
                     </button>
                     {% else %}
                     <a href="{{ url_for('login') }}" class="btn btn-sm btn-outline-primary">
-                        <i data-feather="heart"></i> 
+                        <i class="fas fa-heart"></i> 
                         <span class="like-count">{{ story.likes|length }}</span>
                     </a>
                     {% endif %}
 
                     <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#comments-{{ story.id }}">
-                        <i data-feather="message-square"></i> 
+                        <i class="fas fa-comment"></i> 
                         Comments ({{ story.comments|length }})
                     </button>
 
-                    <!-- Social Media Sharing Buttons -->
-                    <div class="share-buttons d-inline-block">
-                        <button class="btn btn-sm btn-outline-info" 
-                                onclick="return shareStory('twitter', '{{ request.url_root }}story/{{ story.id }}', '{{ story.title }}', '{{ story.content[:200] }}...')"
-                                data-tooltip="Share on Twitter">
-                            <i class="fab fa-twitter"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-primary" 
-                                onclick="return shareStory('facebook', '{{ request.url_root }}story/{{ story.id }}', '{{ story.title }}', '{{ story.content[:200] }}...')"
-                                data-tooltip="Share on Facebook">
-                            <i class="fab fa-facebook"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-secondary" 
-                                onclick="return shareStory('linkedin', '{{ request.url_root }}story/{{ story.id }}', '{{ story.title }}', '{{ story.content[:200] }}...')"
-                                data-tooltip="Share on LinkedIn">
-                            <i class="fab fa-linkedin"></i>
-                        </button>
-                    </div>
+                    <a href="{{ url_for('view_story', story_id=story.id) }}" 
+                       class="btn btn-sm btn-outline-primary">
+                        Read More
+                    </a>
                 </div>
 
                 <div class="collapse mt-3" id="comments-{{ story.id }}">
@@ -112,37 +109,7 @@
                                     <strong>{{ comment.author.username }}</strong>
                                     <small class="text-muted">{{ comment.timestamp.strftime('%B %d, %Y %H:%M') }}</small>
                                     <p class="mb-1">{{ comment.content }}</p>
-
-                                    {% if current_user.is_authenticated %}
-                                    <button class="btn btn-sm btn-link reply-btn" 
-                                            data-bs-toggle="collapse" 
-                                            data-bs-target="#reply-form-{{ comment.id }}">
-                                        Reply
-                                    </button>
-
-                                    <div class="collapse" id="reply-form-{{ comment.id }}">
-                                        <form action="{{ url_for('add_comment', story_id=story.id) }}" method="POST" class="mt-2">
-                                            <input type="hidden" name="parent_id" value="{{ comment.id }}">
-                                            <div class="input-group input-group-sm">
-                                                <input type="text" name="content" class="form-control" placeholder="Reply to this comment...">
-                                                <button type="submit" class="btn btn-primary">Reply</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                    {% endif %}
                                 </div>
-
-                                {% if comment.replies %}
-                                <div class="replies ms-4 mt-2">
-                                    {% for reply in comment.replies %}
-                                    <div class="reply mb-2">
-                                        <strong>{{ reply.author.username }}</strong>
-                                        <small class="text-muted">{{ reply.timestamp.strftime('%B %d, %Y %H:%M') }}</small>
-                                        <p class="mb-1">{{ reply.content }}</p>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                                {% endif %}
                             </div>
                             {% endfor %}
                         </div>
