@@ -105,6 +105,23 @@
                         </div>
                     </div>
 
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="generate_storyboard" name="generate_storyboard">
+                            <label class="form-check-label" for="generate_storyboard">
+                                Generate Visual Storyboard
+                            </label>
+                            <small class="form-text text-muted d-block">Creates a visual storyboard for key scenes in your story</small>
+                        </div>
+                    </div>
+
+                    <div id="storyboardPreview" class="mb-3 d-none">
+                        <label class="form-label">Storyboard Preview</label>
+                        <div class="row" id="storyboardPanels">
+                            <!-- Storyboard panels will be inserted here -->
+                        </div>
+                    </div>
+
                     <div id="soundtrackPlayer" class="mb-3 d-none">
                         <label class="form-label">Background Music Preview</label>
                         <audio controls class="w-100">
@@ -141,6 +158,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const generateAudioCheckbox = document.getElementById('generate_audio');
     const generateSoundtrackCheckbox = document.getElementById('generate_soundtrack');
     const soundtrackPlayer = document.getElementById('soundtrackPlayer');
+    const generateStoryboardCheckbox = document.getElementById('generate_storyboard');
+    const storyboardPreview = document.getElementById('storyboardPreview');
+    const storyboardPanels = document.getElementById('storyboardPanels');
 
     // Add loading overlay
     const loadingOverlay = document.createElement('div');
@@ -396,9 +416,64 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Function to generate storyboard panels
+    async function generateStoryboard(content) {
+        try {
+            showLoading('Generating storyboard panels...');
+            const response = await fetch('/api/generate-storyboard', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content })
+            });
+
+            const data = await response.json();
+            if (data.success && data.panels) {
+                storyboardPreview.classList.remove('d-none');
+                storyboardPanels.innerHTML = data.panels.map((panel, index) => `
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <img src="${panel.image_url}" class="card-img-top" alt="Scene ${index + 1}">
+                            <div class="card-body">
+                                <small class="text-muted">Scene ${index + 1}</small>
+                                <p class="card-text">${panel.description}</p>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                throw new Error(data.error || 'Failed to generate storyboard');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while generating the storyboard. Please try again.');
+            generateStoryboardCheckbox.checked = false;
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // Handle storyboard generation
+    generateStoryboardCheckbox.addEventListener('change', async function() {
+        if (this.checked) {
+            const content = contentTextarea.value;
+            if (!content) {
+                alert('Please write your story before generating a storyboard.');
+                this.checked = false;
+                return;
+            }
+            await generateStoryboard(content);
+        } else {
+            storyboardPreview.classList.add('d-none');
+            storyboardPanels.innerHTML = '';
+        }
+    });
+
+
     // Form submission handling
     form.addEventListener('submit', async (e) => {
-        if (generateImageCheckbox.checked || generateAudioCheckbox.checked || generateSoundtrackCheckbox.checked) {
+        if (generateImageCheckbox.checked || generateAudioCheckbox.checked || generateSoundtrackCheckbox.checked || generateStoryboardCheckbox.checked) {
             e.preventDefault();
             showLoading('Submitting story and generating media...');
 

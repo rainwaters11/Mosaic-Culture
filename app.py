@@ -14,6 +14,7 @@ from services.badge_service import BadgeService
 from services.story_service import StoryService
 from services.tag_service import TagService
 from services.cultural_context_service import CulturalContextService
+from services.storyboard_service import StoryboardService # Added import
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -54,6 +55,7 @@ badge_service = BadgeService()
 story_service = StoryService()
 tag_service = TagService()
 cultural_context_service = CulturalContextService()
+storyboard_service = StoryboardService() # Added service initialization
 
 # Import models after db initialization
 from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge
@@ -526,6 +528,39 @@ def generate_soundtrack():
     except Exception as e:
         logger.error(f"Error generating soundtrack: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/generate-storyboard", methods=["POST"]) # Added route
+@login_required
+@cache.memoize(timeout=300)  # Cache storyboards for 5 minutes
+def generate_storyboard():
+    """Generate a visual storyboard for a story"""
+    try:
+        data = request.get_json()
+        content = data.get("content")
+
+        if not content:
+            return jsonify({"success": False, "error": "Missing content"}), 400
+
+        # Create cache key based on content preview
+        cache_key = f"storyboard_{content[:100]}"
+        cached_storyboard = cache.get(cache_key)
+
+        if cached_storyboard:
+            logger.info("Returning cached storyboard")
+            return jsonify({"success": True, "panels": cached_storyboard})
+
+        # Generate the storyboard
+        storyboard = storyboard_service.create_storyboard(content)
+        if storyboard:
+            cache.set(cache_key, storyboard)
+            return jsonify({"success": True, "panels": storyboard})
+
+        return jsonify({"success": False, "error": "Failed to generate storyboard"}), 500
+
+    except Exception as e:
+        logger.error(f"Error generating storyboard: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 
 @app.route("/story/<int:story_id>")
 def view_story(story_id):
