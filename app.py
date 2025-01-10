@@ -7,46 +7,53 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
 from database import db
-from services.audio_service import AudioService
-from services.image_service import ImageService
-from services.storage_service import StorageService
-from services.badge_service import BadgeService
-from services.story_service import StoryService
-from services.tag_service import TagService
-from services.cultural_context_service import CulturalContextService
-from services.export_service import ExportService
-from functools import wraps
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Create the app
-app = Flask(__name__)
+def create_app():
+    """Application factory function to create and configure the Flask app"""
+    app = Flask(__name__)
 
-# App configuration
-app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "a secret key"
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 300,
-    "pool_pre_ping": True,
-}
-app.config["UPLOAD_FOLDER"] = "static/uploads"
-app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
+    # App configuration
+    app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "a secret key"
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
+    }
+    app.config["UPLOAD_FOLDER"] = "static/uploads"
+    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
 
-# Configure caching
-app.config["CACHE_TYPE"] = "simple"
-app.config["CACHE_DEFAULT_TIMEOUT"] = 300  # 5 minutes default cache timeout
-cache = Cache(app)
+    # Configure caching
+    app.config["CACHE_TYPE"] = "simple"
+    app.config["CACHE_DEFAULT_TIMEOUT"] = 300
+    cache = Cache(app)
 
-# Initialize extensions
-db.init_app(app)
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
+    # Initialize extensions
+    db.init_app(app)
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = 'login'
 
-# Ensure upload directory exists
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+    # Ensure upload directory exists
+    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+
+    # Import models and create tables
+    with app.app_context():
+        try:
+            from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge, EmojiReaction
+            db.create_all()
+            logger.info("Database tables created successfully")
+        except Exception as e:
+            logger.error(f"Error creating database tables: {str(e)}")
+            raise
+
+    return app
+
+# Create the Flask application
+app = create_app()
 
 # Initialize services
 def init_services():
@@ -113,14 +120,12 @@ def init_services():
 # Initialize all services
 services = init_services()
 
-# Import models after db initialization
-from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge, EmojiReaction
 
 # Initialize database and create default badges
 logger.info("Initializing database and default badges...")
 with app.app_context():
     try:
-        db.create_all()
+        #db.create_all() # This is now handled in create_app
         if services['badge']:
             services['badge'].initialize_default_badges()
         logger.info("Database and badges initialized successfully")
@@ -505,12 +510,30 @@ def add_comment(story_id):
 def profile():
     """User profile with their stories and badges"""
     try:
-        user_stories = Story.query.filter_by(user_id=current_user.id)\
-            .order_by(Story.submission_date.desc()).all()
-        user_badges = UserBadge.query.filter_by(user_id=current_user.id).all()
+        logger.debug(f"Loading profile for user: {current_user.username}")
 
-        app.logger.debug(f"User stories count: {len(user_stories)}")
-        app.logger.debug(f"User badges count: {len(user_badges)}")
+        # Get user stories with error handling
+        try:
+            user_stories = Story.query.filter_by(user_id=current_user.id)\
+                .order_by(Story.submission_date.desc()).all()
+            logger.debug(f"Found {len(user_stories)} stories for user")
+        except Exception as e:
+            logger.error(f"Error fetching user stories: {str(e)}")
+            user_stories = []
+
+        # Get user badges with error handling
+        try:
+            user_badges = UserBadge.query.filter_by(user_id=current_user.id).all()
+            logger.debug(f"Found {len(user_badges)} badges for user")
+        except Exception as e:
+            logger.error(f"Error fetching user badges: {str(e)}")
+            user_badges = []
+
+        # Validate submission dates before template rendering
+        for story in user_stories:
+            if story.submission_date and not isinstance(story.submission_date, datetime.datetime):
+                logger.warning(f"Invalid submission_date for story {story.id}")
+                story.submission_date = None
 
         return render_template(
             "profile.html",
@@ -518,7 +541,7 @@ def profile():
             badges=user_badges
         )
     except Exception as e:
-        app.logger.error(f"Error in profile route: {str(e)}")
+        logger.error(f"Error in profile route: {str(e)}")
         flash("Error loading profile data", "error")
         return render_template("profile.html", stories=[], badges=[])
 
@@ -826,7 +849,6 @@ def export_story(story_id, format):
                 return resp
             return decorator
 
-
         response = send_file(
             file_path,
             mimetype=mime_type,
@@ -849,3 +871,6 @@ def export_story(story_id, format):
         app.logger.error(f"Error exporting story: {str(e)}")
         flash("Error exporting story", "error")
         return redirect(url_for('view_story', story_id=story_id))
+
+if __name__ == "__main__":
+    app.run(debug=True)
