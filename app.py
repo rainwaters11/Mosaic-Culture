@@ -149,7 +149,7 @@ def submit_story():
                     if upload_result:
                         story.media_url = upload_result["url"]
                 except Exception as e:
-                    app.logger.error(f"Error uploading media: {str(e)}")
+                    logger.error(f"Error uploading media: {str(e)}")
                     flash("Error uploading media", "error")
 
         # Generate and store audio narration if requested
@@ -165,7 +165,7 @@ def submit_story():
                     if upload_result:
                         story.audio_url = upload_result["url"]
             except Exception as e:
-                app.logger.error(f"Error generating audio: {str(e)}")
+                logger.error(f"Error generating audio: {str(e)}")
                 flash("Error generating audio narration", "error")
 
         # Generate and store AI image if requested
@@ -176,27 +176,45 @@ def submit_story():
                 if image_url:
                     story.generated_image_url = image_url
             except Exception as e:
-                app.logger.error(f"Error generating image: {str(e)}")
+                logger.error(f"Error generating image: {str(e)}")
                 flash("Error generating AI image", "error")
 
-        # Process tags
-        if tags_input:
-            tag_names = [t.strip().lower() for t in tags_input.split(',') if t.strip()]
-            for tag_name in tag_names:
-                tag = Tag.query.filter_by(name=tag_name).first()
-                if not tag:
-                    tag = Tag(name=tag_name)
-                    db.session.add(tag)
-                story.tags.append(tag)
-
+        # First save the story to get an ID
         db.session.add(story)
-        db.session.commit()
+        try:
+            db.session.commit()
+            logger.info(f"Story created with ID: {story.id}")
+        except Exception as e:
+            logger.error(f"Error saving story: {str(e)}")
+            db.session.rollback()
+            flash("Error saving your story", "error")
+            return redirect(url_for("submit_story"))
+
+        # Process tags after story is saved
+        if tags_input:
+            try:
+                tag_names = [t.strip().lower() for t in tags_input.split(',') if t.strip()]
+                for tag_name in tag_names:
+                    tag = Tag.query.filter_by(name=tag_name).first()
+                    if not tag:
+                        tag = Tag(name=tag_name)
+                        db.session.add(tag)
+                        db.session.commit()  # Commit to get tag ID
+                    story.tags.append(tag)
+                db.session.commit()  # Commit the tag associations
+                logger.info(f"Added tags to story {story.id}: {tag_names}")
+            except Exception as e:
+                logger.error(f"Error processing tags: {str(e)}")
+                flash("Error processing tags", "error")
 
         # After successful story submission, check for new badges
-        new_badges = badge_service.check_and_award_badges(current_user)
-        if new_badges:
-            badge_names = [badge.name for badge in new_badges]
-            flash(f"Congratulations! You earned new badges: {', '.join(badge_names)}", "success")
+        try:
+            new_badges = badge_service.check_and_award_badges(current_user)
+            if new_badges:
+                badge_names = [badge.name for badge in new_badges]
+                flash(f"Congratulations! You earned new badges: {', '.join(badge_names)}", "success")
+        except Exception as e:
+            logger.error(f"Error processing badges: {str(e)}")
 
         return redirect(url_for("gallery"))
 
