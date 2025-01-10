@@ -3,34 +3,23 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
-<div class="hero-section text-center py-5">
-    <h1 class="display-4">Share Your Cultural Story</h1>
+<div class="hero-section text-center">
+    <h1>Share Your Cultural Story</h1>
     <p class="lead">Join our global community in celebrating diversity through storytelling</p>
-    <a href="{{ url_for('submit_story') }}" class="btn btn-primary btn-lg mt-3">Share Your Story</a>
+    <a href="{{ url_for('submit_story') }}" class="btn btn-light btn-lg mt-3">Share Your Story</a>
 </div>
 
-<div class="featured-stories mt-5">
-    <h2 class="text-center section-title">Featured Stories</h2>
+<div class="featured-stories">
+    <h2 class="section-title">Featured Stories</h2>
     <div class="story-grid">
         {% for story in featured_stories %}
-        <div class="story-card fade-in">
+        <div class="story-card">
             {% if story.generated_image_url or story.media_url %}
-            <a href="#" class="story-preview-trigger"
-               data-title="{{ story.title }}"
-               data-image="{{ story.generated_image_url or story.media_url }}"
-               data-region="{{ story.region }}"
-               data-author="By {{ story.author.username }} on {{ story.submission_date.strftime('%B %d, %Y') }}"
-               data-excerpt="{{ story.content[:300] }}..."
-               data-url="{{ url_for('view_story', story_id=story.id) }}"
-               data-likes="{{ story.likes|length }}"
-               data-comments="{{ story.comments|length }}"
-               data-tags="{{ story.tags|map(attribute='name')|list|tojson }}">
-                <div class="story-card-image">
-                    <img src="{{ story.generated_image_url or story.media_url }}" 
-                         alt="{{ story.title }}"
-                         loading="lazy">
-                </div>
-            </a>
+            <div class="story-card-image">
+                <img src="{{ story.generated_image_url or story.media_url }}" 
+                     alt="{{ story.title }}"
+                     loading="lazy">
+            </div>
             {% endif %}
             <div class="story-card-content">
                 <h3 class="story-card-title">{{ story.title }}</h3>
@@ -42,10 +31,7 @@
                 {% if story.tags %}
                 <div class="story-tags mt-3">
                     {% for tag in story.tags %}
-                    <a href="{{ url_for('gallery', tag=tag.name) }}" 
-                       class="badge bg-light text-dark text-decoration-none">
-                        #{{ tag.name }}
-                    </a>
+                    <span class="badge bg-light text-dark">#{{ tag.name }}</span>
                     {% endfor %}
                 </div>
                 {% endif %}
@@ -53,11 +39,11 @@
                     <a href="{{ url_for('view_story', story_id=story.id) }}" 
                        class="btn btn-primary">Read More</a>
                     <div class="engagement-stats">
-                        <span class="likes me-2">
+                        <span class="me-2">
                             <i class="fas fa-heart text-danger"></i> 
                             {{ story.likes|length }}
                         </span>
-                        <span class="comments">
+                        <span>
                             <i class="fas fa-comment"></i> 
                             {{ story.comments|length }}
                         </span>
@@ -71,27 +57,16 @@
 
 {% if recent_stories %}
 <div class="recent-stories mt-5">
-    <h2 class="text-center section-title">Recent Stories</h2>
+    <h2 class="section-title">Recent Stories</h2>
     <div class="story-grid">
         {% for story in recent_stories %}
-        <div class="story-card fade-in">
+        <div class="story-card">
             {% if story.generated_image_url or story.media_url %}
-            <a href="#" class="story-preview-trigger"
-               data-title="{{ story.title }}"
-               data-image="{{ story.generated_image_url or story.media_url }}"
-               data-region="{{ story.region }}"
-               data-author="By {{ story.author.username }} on {{ story.submission_date.strftime('%B %d, %Y') }}"
-               data-excerpt="{{ story.content[:300] }}..."
-               data-url="{{ url_for('view_story', story_id=story.id) }}"
-               data-likes="{{ story.likes|length }}"
-               data-comments="{{ story.comments|length }}"
-               data-tags="{{ story.tags|map(attribute='name')|list|tojson }}">
-                <div class="story-card-image">
-                    <img src="{{ story.generated_image_url or story.media_url }}" 
-                         alt="{{ story.title }}"
-                         loading="lazy">
-                </div>
-            </a>
+            <div class="story-card-image">
+                <img src="{{ story.generated_image_url or story.media_url }}" 
+                     alt="{{ story.title }}"
+                     loading="lazy">
+            </div>
             {% endif %}
             <div class="story-card-content">
                 <h3 class="story-card-title">{{ story.title }}</h3>
@@ -103,10 +78,7 @@
                 {% if story.tags %}
                 <div class="story-tags mt-3">
                     {% for tag in story.tags %}
-                    <a href="{{ url_for('gallery', tag=tag.name) }}" 
-                       class="badge bg-light text-dark text-decoration-none">
-                        #{{ tag.name }}
-                    </a>
+                    <span class="badge bg-light text-dark">#{{ tag.name }}</span>
                     {% endfor %}
                 </div>
                 {% endif %}
@@ -114,11 +86,11 @@
                     <a href="{{ url_for('view_story', story_id=story.id) }}" 
                        class="btn btn-primary">Read More</a>
                     <div class="engagement-stats">
-                        <span class="likes me-2">
+                        <span class="me-2">
                             <i class="fas fa-heart text-danger"></i> 
                             {{ story.likes|length }}
                         </span>
-                        <span class="comments">
+                        <span>
                             <i class="fas fa-comment"></i> 
                             {{ story.comments|length }}
                         </span>
