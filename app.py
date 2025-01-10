@@ -114,7 +114,7 @@ def init_services():
 services = init_services()
 
 # Import models after db initialization
-from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge
+from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge, EmojiReaction
 
 # Initialize database and create default badges
 logger.info("Initializing database and default badges...")
@@ -391,6 +391,86 @@ def like_story(story_id):
         'likes': len(story.likes),
         'action': action
     })
+
+@app.route("/api/react/<int:story_id>", methods=["POST"])
+@login_required
+def react_to_story(story_id):
+    """Add or remove an emoji reaction to a story"""
+    try:
+        story = Story.query.get_or_404(story_id)
+        data = request.get_json()
+        emoji = data.get('emoji')
+
+        if not emoji:
+            return jsonify({"success": False, "error": "No emoji provided"}), 400
+
+        # Check if user already reacted with this emoji
+        existing_reaction = EmojiReaction.query.filter_by(
+            story_id=story_id,
+            user_id=current_user.id,
+            emoji=emoji
+        ).first()
+
+        if existing_reaction:
+            # Remove reaction if it exists
+            db.session.delete(existing_reaction)
+            action = 'removed'
+        else:
+            # Add new reaction
+            reaction = EmojiReaction(
+                story_id=story_id,
+                user_id=current_user.id,
+                emoji=emoji
+            )
+            db.session.add(reaction)
+            action = 'added'
+
+        db.session.commit()
+
+        # Get updated reaction counts
+        reaction_counts = db.session.query(
+            EmojiReaction.emoji, 
+            db.func.count(EmojiReaction.id)
+        ).filter_by(story_id=story_id).group_by(EmojiReaction.emoji).all()
+
+        return jsonify({
+            "success": True,
+            "action": action,
+            "reactions": dict(reaction_counts)
+        })
+
+    except Exception as e:
+        app.logger.error(f"Error handling emoji reaction: {str(e)}")
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/reactions/<int:story_id>")
+def get_story_reactions(story_id):
+    """Get all emoji reactions for a story"""
+    try:
+        # Get reaction counts
+        reaction_counts = db.session.query(
+            EmojiReaction.emoji, 
+            db.func.count(EmojiReaction.id)
+        ).filter_by(story_id=story_id).group_by(EmojiReaction.emoji).all()
+
+        # Get user's reactions if logged in
+        user_reactions = []
+        if current_user.is_authenticated:
+            user_reactions = [r.emoji for r in EmojiReaction.query.filter_by(
+                story_id=story_id,
+                user_id=current_user.id
+            ).all()]
+
+        return jsonify({
+            "success": True,
+            "reactions": dict(reaction_counts),
+            "userReactions": user_reactions
+        })
+
+    except Exception as e:
+        app.logger.error(f"Error getting story reactions: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/comment/<int:story_id>", methods=["POST"])
 @login_required

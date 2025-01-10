@@ -813,3 +813,51 @@ body {
     background: var(--accent-color);
     opacity: 0.9;
 }
+
+/* Emoji Reaction Styles */
+.emoji-reactions {
+    padding: 1rem 0;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.emoji-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.emoji-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 2rem;
+    background: var(--card-bg);
+    color: var(--text-color);
+    transition: all 0.2s ease;
+}
+
+.emoji-btn:hover {
+    transform: scale(1.05);
+    background: var(--accent-color);
+    color: var(--primary-color);
+    border-color: var(--accent-color);
+}
+
+.emoji-btn.active {
+    background: var(--accent-color);
+    color: var(--primary-color);
+    border-color: var(--accent-color);
+}
+
+.emoji-btn .emoji {
+    font-size: 1.2rem;
+}
+
+.emoji-btn .count {
+    font-size: 0.9rem;
+    font-weight: 500;
+}

@@ -8,6 +8,20 @@ story_tags = db.Table('story_tags',
     db.Column('tag_id', db.Integer, db.ForeignKey('tags.id'), primary_key=True)
 )
 
+class EmojiReaction(db.Model):
+    """Model for storing emoji reactions on stories"""
+    __tablename__ = 'emoji_reactions'
+    id = db.Column(db.Integer, primary_key=True)
+    story_id = db.Column(db.Integer, db.ForeignKey('stories.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    emoji = db.Column(db.String(50), nullable=False)  # Store emoji unicode or name
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+    # Add unique constraint to prevent multiple reactions of same type from same user
+    __table_args__ = (
+        db.UniqueConstraint('story_id', 'user_id', 'emoji', name='unique_user_emoji_reaction'),
+    )
+
 class Badge(db.Model):
     __tablename__ = 'badges'
     id = db.Column(db.Integer, primary_key=True)
@@ -34,6 +48,7 @@ class User(UserMixin, db.Model):
     comments = db.relationship('Comment', backref='author', lazy=True)
     badges = db.relationship('UserBadge', backref='user', lazy=True)
     stories = db.relationship('Story', backref='author', lazy=True)
+    emoji_reactions = db.relationship('EmojiReaction', backref='user', lazy=True)
 
 class Story(db.Model):
     __tablename__ = 'stories'
@@ -51,6 +66,7 @@ class Story(db.Model):
     comments = db.relationship('Comment', backref='story', lazy=True)
     tags = db.relationship('Tag', secondary=story_tags, lazy='subquery',
         backref=db.backref('stories', lazy=True))
+    emoji_reactions = db.relationship('EmojiReaction', backref='story', lazy=True)
     is_featured = db.Column(db.Boolean, default=False)  # New column for featured status
     featured_date = db.Column(db.DateTime)  # New column to track when story was featured
 

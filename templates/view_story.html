@@ -62,6 +62,33 @@
                     </div>
                     {% endif %}
 
+                    <!-- Emoji Reactions Section -->
+                    <div class="emoji-reactions mb-4">
+                        <h5>React to this Story</h5>
+                        <div class="emoji-buttons" data-story-id="{{ story.id }}">
+                            <button class="btn btn-outline-light emoji-btn me-2" data-emoji="❤️">
+                                <span class="emoji">❤️</span>
+                                <span class="count" data-emoji="❤️">0</span>
+                            </button>
+                            <button class="btn btn-outline-light emoji-btn me-2" data-emoji="👏">
+                                <span class="emoji">👏</span>
+                                <span class="count" data-emoji="👏">0</span>
+                            </button>
+                            <button class="btn btn-outline-light emoji-btn me-2" data-emoji="🌟">
+                                <span class="emoji">🌟</span>
+                                <span class="count" data-emoji="🌟">0</span>
+                            </button>
+                            <button class="btn btn-outline-light emoji-btn me-2" data-emoji="😊">
+                                <span class="emoji">😊</span>
+                                <span class="count" data-emoji="😊">0</span>
+                            </button>
+                            <button class="btn btn-outline-light emoji-btn me-2" data-emoji="🙏">
+                                <span class="emoji">🙏</span>
+                                <span class="count" data-emoji="🙏">0</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="action-buttons mb-4">
                         <div class="row">
                             <div class="col-md-6">
@@ -106,4 +133,66 @@
         </div>
     </div>
 </div>
+
+<!-- Add JavaScript for emoji reactions -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const emojiButtons = document.querySelectorAll('.emoji-btn');
+    const storyId = document.querySelector('.emoji-buttons').dataset.storyId;
+
+    // Load initial reaction counts
+    loadReactions();
+
+    emojiButtons.forEach(button => {
+        button.addEventListener('click', async function() {
+            if (!storyId) return;
+
+            const emoji = this.dataset.emoji;
+            try {
+                const response = await fetch(`/api/react/${storyId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ emoji })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    updateReactionCounts(data.reactions);
+                    this.classList.toggle('active', data.action === 'added');
+                }
+            } catch (error) {
+                console.error('Error updating reaction:', error);
+            }
+        });
+    });
+
+    async function loadReactions() {
+        try {
+            const response = await fetch(`/api/reactions/${storyId}`);
+            const data = await response.json();
+            if (data.success) {
+                updateReactionCounts(data.reactions);
+                // Highlight user's reactions
+                if (data.userReactions) {
+                    data.userReactions.forEach(emoji => {
+                        const button = document.querySelector(`.emoji-btn[data-emoji="${emoji}"]`);
+                        if (button) button.classList.add('active');
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error loading reactions:', error);
+        }
+    }
+
+    function updateReactionCounts(reactions) {
+        for (const [emoji, count] of Object.entries(reactions)) {
+            const countSpan = document.querySelector(`.count[data-emoji="${emoji}"]`);
+            if (countSpan) countSpan.textContent = count;
+        }
+    }
+});
+</script>
 {% endblock %}
