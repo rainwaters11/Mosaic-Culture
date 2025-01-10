@@ -8,101 +8,6 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
 from database import db
-
-# Configure logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-logger.info("Starting Flask application initialization...")
-
-# Create the app
-app = Flask(__name__)
-logger.info("Flask app created")
-
-# App configuration
-logger.info("Setting up app configuration...")
-app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "a secret key"
-
-# Configure database
-database_url = os.environ.get("DATABASE_URL")
-if database_url:
-    logger.info("DATABASE_URL environment variable found")
-else:
-    logger.error("DATABASE_URL environment variable is missing")
-
-app.config["SQLALCHEMY_DATABASE_URI"] = database_url
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 300,
-    "pool_pre_ping": True,
-}
-app.config["UPLOAD_FOLDER"] = "static/uploads"
-app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
-
-# Set explicit port configuration
-app.config["PORT"] = int(os.environ.get("PORT", 3000))
-
-logger.info(f"App configured to run on port {app.config['PORT']}")
-logger.info("App configuration completed")
-
-# Initialize extensions
-logger.info("Initializing database extension...")
-try:
-    db.init_app(app)
-    logger.info("Database extension initialized successfully")
-except Exception as db_error:
-    logger.error(f"Failed to initialize database: {str(db_error)}")
-    raise
-
-# Initialize login manager
-logger.info("Initializing login manager...")
-try:
-    login_manager = LoginManager()
-    login_manager.init_app(app)
-    login_manager.login_view = 'login'
-    logger.info("Login manager initialized successfully")
-except Exception as login_error:
-    logger.error(f"Failed to initialize login manager: {str(login_error)}")
-    raise
-
-# Configure caching
-logger.info("Configuring cache...")
-app.config["CACHE_TYPE"] = "simple"
-app.config["CACHE_DEFAULT_TIMEOUT"] = 300  # 5 minutes default cache timeout
-cache = Cache(app)
-logger.info("Cache initialized")
-
-# Ensure upload directory exists
-logger.info("Creating upload directory...")
-try:
-    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-    logger.info("Upload directory created successfully")
-except Exception as dir_error:
-    logger.error(f"Failed to create upload directory: {str(dir_error)}")
-    raise
-
-# Import models after db initialization
-logger.info("Importing models...")
-try:
-    from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge
-    logger.info("Models imported successfully")
-except Exception as model_error:
-    logger.error(f"Error importing models: {str(model_error)}")
-    raise
-
-# Initialize database tables
-logger.info("Initializing database tables...")
-with app.app_context():
-    try:
-        db.create_all()
-        logger.info("Database tables created successfully")
-    except Exception as e:
-        logger.error(f"Error creating database tables: {str(e)}")
-        raise
-
-# Initialize services after database setup
 from services.audio_service import AudioService
 from services.image_service import ImageService
 from services.storage_service import StorageService
@@ -112,44 +17,115 @@ from services.tag_service import TagService
 from services.cultural_context_service import CulturalContextService
 from services.export_service import ExportService
 
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# Create the app
+app = Flask(__name__)
+
+# App configuration
+app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "a secret key"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+app.config["UPLOAD_FOLDER"] = "static/uploads"
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
+
+# Configure caching
+app.config["CACHE_TYPE"] = "simple"
+app.config["CACHE_DEFAULT_TIMEOUT"] = 300  # 5 minutes default cache timeout
+cache = Cache(app)
+
+# Initialize extensions
+db.init_app(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+# Ensure upload directory exists
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+
+# Initialize services
 def init_services():
     """Initialize all services and handle any initialization errors gracefully"""
-    logger.info("Starting services initialization")
     services = {}
+    try:
+        services['export'] = ExportService()
+        logger.info("Export service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing export service: {str(e)}")
+        services['export'] = None
 
-    service_initializers = {
-        'export': (ExportService, "Export service"),
-        'audio': (AudioService, "Audio service"),
-        'image': (ImageService, "Image service"),
-        'storage': (StorageService, "Storage service"),
-        'badge': (BadgeService, "Badge service"),
-        'story': (StoryService, "Story service"),
-        'tag': (TagService, "Tag service"),
-        'cultural_context': (CulturalContextService, "Cultural context service")
-    }
+    try:
+        services['audio'] = AudioService()
+        logger.info("Audio service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing audio service: {str(e)}")
+        services['audio'] = None
 
-    for service_key, (ServiceClass, service_name) in service_initializers.items():
-        try:
-            logger.info(f"Initializing {service_name}")
-            services[service_key] = ServiceClass()
-            logger.info(f"{service_name} initialized successfully")
-        except Exception as e:
-            logger.error(f"Error initializing {service_name}: {str(e)}")
-            services[service_key] = None
+    try:
+        services['image'] = ImageService()
+        logger.info("Image service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing image service: {str(e)}")
+        services['image'] = None
+
+    try:
+        services['storage'] = StorageService()
+        logger.info("Storage service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing storage service: {str(e)}")
+        services['storage'] = None
+
+    try:
+        services['badge'] = BadgeService()
+        logger.info("Badge service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing badge service: {str(e)}")
+        services['badge'] = None
+
+    try:
+        services['story'] = StoryService()
+        logger.info("Story service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing story service: {str(e)}")
+        services['story'] = None
+
+    try:
+        services['tag'] = TagService()
+        logger.info("Tag service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing tag service: {str(e)}")
+        services['tag'] = None
+
+    try:
+        services['cultural_context'] = CulturalContextService()
+        logger.info("Cultural context service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing cultural context service: {str(e)}")
+        services['cultural_context'] = None
 
     return services
 
-logger.info("Starting service initialization process...")
+# Initialize all services
 services = init_services()
 
-# Initialize badges after services are available
-if services.get('badge'):
+# Import models after db initialization
+from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge
+
+# Initialize database and create default badges
+logger.info("Initializing database and default badges...")
+with app.app_context():
     try:
-        with app.app_context():
+        db.create_all()
+        if services['badge']:
             services['badge'].initialize_default_badges()
-            logger.info("Default badges initialized successfully")
+        logger.info("Database and badges initialized successfully")
     except Exception as e:
-        logger.error(f"Error initializing default badges: {str(e)}")
+        logger.error(f"Error initializing database: {str(e)}")
 
 @login_manager.user_loader
 def load_user(id):
@@ -541,7 +517,6 @@ def get_cultural_insights():
 def generate_audio():
     """API endpoint to generate audio narration using ElevenLabs"""
     if not services['audio'] or not services['audio'].is_available:
-        logger.error("Audio service is not available")
         return jsonify({
             "success": False,
             "error": "Audio service is not available. Please check if ElevenLabs API key is configured."
@@ -549,26 +524,28 @@ def generate_audio():
 
     try:
         data = request.get_json()
-        if not data:
-            logger.error("No JSON data received in request")
-            return jsonify({
-                "success": False,
-                "error": "No data provided"
-            }), 400
-
-        content = data.get("content")
-        if not content:
-            logger.error("No content provided in request data")
-            return jsonify({
-                "success": False,
-                "error": "Missing content"
-            }), 400
-
+        story_id = data.get("story_id")
         voice_name = data.get("voice", "Aria")  # Default to Aria voice
-        logger.debug(f"Generating audio with voice {voice_name}")
+
+        # Fetch the story
+        story = Story.query.get_or_404(story_id)
+
+        if not story.content:
+            return jsonify({
+                "success": False,
+                "error": "Story content is missing"
+            }), 400
+
+        # Check if audio already exists
+        if story.audio_url:
+            return jsonify({
+                "success": True,
+                "audio_url": story.audio_url,
+                "message": "Audio already exists"
+            })
 
         # Generate audio
-        audio_result = services['audio'].generate_audio(content, voice_name)
+        audio_result = services['audio'].generate_audio(story.content, voice_name)
 
         if audio_result["success"]:
             try:
@@ -578,11 +555,15 @@ def generate_audio():
                     upload_result = services['storage'].upload_media(
                         audio_data,
                         resource_type="audio",
-                        public_id=f"audio_{datetime.datetime.utcnow().timestamp()}"
+                        public_id=f"audio_{story_id}_{datetime.datetime.utcnow().timestamp()}"
                     )
 
                     if upload_result and "url" in upload_result:
-                        logger.info("Successfully generated and uploaded audio")
+                        # Save the audio URL to the story
+                        story.audio_url = upload_result["url"]
+                        db.session.commit()
+
+                        logger.info(f"Successfully generated and uploaded audio for story {story_id}")
                         return jsonify({
                             "success": True,
                             "audio_url": upload_result["url"]
@@ -599,7 +580,6 @@ def generate_audio():
                     "error": f"Error uploading audio: {str(e)}"
                 }), 500
         else:
-            logger.error(f"Error generating audio: {audio_result.get('error', 'Unknown error')}")
             return jsonify({
                 "success": False,
                 "error": audio_result.get("error", "Unknown error occurred")
@@ -661,19 +641,8 @@ def generate_image():
 @app.route("/story/<int:story_id>")
 def view_story(story_id):
     """View a single story, used for social media sharing"""
-    try:
-        story = Story.query.get_or_404(story_id)
-        logger.debug(f"Rendering story view for story_id: {story_id}")
-        logger.debug(f"Story object found: {story and story.id}")  # Add debug logging
-        if not story:
-            logger.error(f"Story not found with ID: {story_id}")
-            flash("Story not found", "error")
-            return redirect(url_for("gallery"))
-        return render_template("view_story.html", story=story)
-    except Exception as e:
-        logger.error(f"Error viewing story {story_id}: {str(e)}")
-        flash("Error loading story", "error")
-        return redirect(url_for("gallery"))
+    story = Story.query.get_or_404(story_id)
+    return render_template("view_story.html", story=story)
 
 
 @app.route("/story/<int:story_id>/export/<format>")

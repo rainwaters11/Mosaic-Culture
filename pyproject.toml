@@ -20,6 +20,4 @@ dependencies = [
     "flask-caching>=2.3.0",
     "weasyprint>=63.1",
     "ebooklib>=0.18",
-    "flask-wtf>=1.2.2",
-    "oauthlib>=3.2.2",
 ]

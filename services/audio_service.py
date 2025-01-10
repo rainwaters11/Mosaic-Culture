@@ -46,32 +46,7 @@ class AudioService:
         except Exception as e:
             logger.error(f"Error checking ElevenLabs service: {str(e)}")
 
-    def _get_voice_id(self, voice_name: str) -> str | None:
-        """Get the voice ID for a given voice name"""
-        if not voice_name:
-            return None
-
-        try:
-            headers = {"xi-api-key": self.api_key}
-            response = requests.get(f"{self.base_url}/voices", headers=headers)
-
-            if response.status_code == 200:
-                voices = response.json().get("voices", [])
-                for voice in voices:
-                    if voice["name"].lower() == voice_name.lower():
-                        return voice["voice_id"]
-
-                logger.warning(f"Voice '{voice_name}' not found in available voices")
-                return None
-
-            logger.error(f"Error fetching voices: {response.text}")
-            return None
-
-        except Exception as e:
-            logger.error(f"Error fetching voices: {str(e)}")
-            return None
-
-    def generate_audio(self, text: str, voice_name: str | None = None) -> Dict[str, Union[bool, bytes, str]]:
+    def generate_audio(self, text: str, voice_name: Optional[str] = None) -> Dict[str, Union[bool, bytes, str]]:
         """
         Generate audio from text using ElevenLabs API
         Args:
@@ -111,11 +86,6 @@ class AudioService:
                 "Content-Type": "application/json",
                 "xi-api-key": self.api_key
             }
-
-            # Log the request being made
-            logger.debug(f"Making request to ElevenLabs API: {url}")
-            logger.debug(f"Using voice: {voice_name} (ID: {voice_id})")
-
             data = {
                 "text": text,
                 "model_id": "eleven_monolingual_v1",
@@ -127,9 +97,6 @@ class AudioService:
 
             # Make the API request with proper error handling
             response = requests.post(url, json=data, headers=headers)
-
-            # Log response status
-            logger.debug(f"ElevenLabs API response status: {response.status_code}")
 
             if response.status_code == 200:
                 logger.info(f"Successfully generated audio with voice: {voice_name}")
@@ -147,6 +114,28 @@ class AudioService:
             error_msg = f"Error generating audio: {str(e)}"
             logger.error(error_msg)
             return {"success": False, "error": error_msg}
+
+    def _get_voice_id(self, voice_name: str) -> Optional[str]:
+        """Get the voice ID for a given voice name"""
+        try:
+            headers = {"xi-api-key": self.api_key}
+            response = requests.get(f"{self.base_url}/voices", headers=headers)
+
+            if response.status_code == 200:
+                voices = response.json().get("voices", [])
+                for voice in voices:
+                    if voice["name"].lower() == voice_name.lower():
+                        return voice["voice_id"]
+
+                logger.warning(f"Voice '{voice_name}' not found. Available voices: {', '.join([v['name'] for v in voices])}")
+                return None
+
+            logger.error(f"Error fetching voices: {response.text}")
+            return None
+
+        except Exception as e:
+            logger.error(f"Error fetching voices: {str(e)}")
+            return None
 
     def get_available_voices(self) -> Dict[str, Union[bool, List[str], str]]:
         """Get a list of available voices"""
