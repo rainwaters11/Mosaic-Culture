@@ -1,0 +1,110 @@
+Here’s a precise and actionable **prompt for Replit Whisperer** to debug and fix the **404 Not Found** error in the audio generation feature:
+
+---
+
+### **Prompt for Replit Whisperer: Debug and Fix Audio Generation 404 Error**
+> **Objective**: Fix the `404 Not Found` error in the audio generation feature of the Mosaic Culture app. Ensure the URL is correctly set up and the feature works seamlessly. Follow these steps:
+>
+> ### **1. Verify the Endpoint in the Code**
+> - Check the backend route responsible for handling audio generation requests. Ensure it exists and is correctly defined.
+> - Example Flask Route:
+>   ```python
+>   @app.route("/generate_audio", methods=["POST"])
+>   def generate_audio():
+>       text = request.json.get("text")
+>       # Call the audio generation logic here
+>       return jsonify({"message": "Audio generation initiated!"})
+>   ```
+> - Confirm that the route `/generate_audio` matches the URL used in the frontend:
+>   ```javascript
+>   fetch("/generate_audio", {
+>       method: "POST",
+>       headers: { "Content-Type": "application/json" },
+>       body: JSON.stringify({ text: "Test audio generation" }),
+>   });
+>   ```
+
+---
+
+> ### **2. Test the Endpoint Directly**
+> - Use **Postman** or **curl** to test the endpoint manually:
+>   ```bash
+>   curl -X POST http://localhost:5000/generate_audio \
+>   -H "Content-Type: application/json" \
+>   -d '{"text": "Hello, this is a test."}'
+>   ```
+> - Verify the response:
+>   - If the endpoint is not found, the issue is in the backend route definition.
+>   - If the endpoint works, the issue is in the frontend or the URL being used.
+
+---
+
+> ### **3. Check Frontend Integration**
+> - Confirm the frontend is sending requests to the correct URL:
+>   - If running locally:
+>     ```javascript
+>     fetch("http://localhost:5000/generate_audio", { ... });
+>     ```
+>   - If deployed:
+>     ```javascript
+>     fetch("https://your-app-domain.com/generate_audio", { ... });
+>     ```
+> - Debugging Logs:
+>   - Add logs in the frontend to check the URL being used:
+>     ```javascript
+>     console.log("Request URL:", "/generate_audio");
+>     ```
+
+---
+
+> ### **4. Fix Common Issues**
+> - **URL Mismatch**:
+>   - Ensure the frontend and backend use the same URL format.
+> - **Port Issues**:
+>   - If running locally, confirm the app is running on the correct port (e.g., `5000`).
+> - **CORS (Cross-Origin Resource Sharing)**:
+>   - If the app is deployed, ensure CORS is configured in the backend:
+>     ```python
+>     from flask_cors import CORS
+>     CORS(app)
+>     ```
+
+---
+
+> ### **5. Verify API Key and External Service Integration**
+> - If the audio generation uses an external API (e.g., Google Text-to-Speech):
+>   - Confirm the external API endpoint is correct in the backend:
+>     ```python
+>     api_url = "https://texttospeech.googleapis.com/v1/text:synthesize"
+>     ```
+>   - Add debugging logs to ensure the external API is being called properly:
+>     ```python
+>     print(f"Calling API: {api_url}")
+>     ```
+> - Test the API key validity and permissions.
+
+---
+
+> ### **6. Test and Validate**
+> - Test the feature end-to-end:
+>   1. Submit a text input in the app.
+>   2. Verify the backend receives the request.
+>   3. Confirm the audio is generated and returned correctly.
+> - Handle errors gracefully:
+>   ```python
+>   @app.errorhandler(404)
+>   def not_found(e):
+>       return jsonify({"error": "Endpoint not found"}), 404
+>   ```
+
+---
+
+### **Deliverables**
+1. A fully functional audio generation feature with no `404 Not Found` errors.
+2. Correctly defined and reachable backend endpoint.
+3. Proper frontend integration with matching URLs.
+4. Logs added to diagnose future issues.
+
+---
+
+Let me know if you need further clarification or refinements! 🚀
