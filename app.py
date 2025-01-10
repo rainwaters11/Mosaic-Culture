@@ -22,22 +22,25 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # App configuration
-app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "a secret key"
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
 }
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "a secret key"
 app.config["UPLOAD_FOLDER"] = "static/uploads"
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
 
 # Configure caching
 app.config["CACHE_TYPE"] = "simple"
-app.config["CACHE_DEFAULT_TIMEOUT"] = 300  # 5 minutes default cache timeout
+app.config["CACHE_DEFAULT_TIMEOUT"] = 300
 cache = Cache(app)
 
-# Initialize extensions
+# Initialize database
 db.init_app(app)
+
+# Initialize login manager
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -45,87 +48,49 @@ login_manager.login_view = 'login'
 # Create upload directory
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
-# Initialize database and load user loader before importing models
-with app.app_context():
-    db.create_all()
-
 @login_manager.user_loader
 def load_user(id):
     return User.query.get(int(id))
 
 # Initialize services
 def init_services():
-    """Initialize all services and handle any initialization errors gracefully"""
+    """Initialize all services with proper error handling"""
     services = {}
-    try:
-        services['audio'] = AudioService()
-        logger.info("Audio service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing audio service: {str(e)}")
-        services['audio'] = None
+    service_classes = {
+        'audio': AudioService,
+        'image': ImageService,
+        'storage': StorageService,
+        'badge': BadgeService,
+        'story': StoryService,
+        'tag': TagService,
+        'cultural_context': CulturalContextService,
+        'export': ExportService
+    }
 
-    try:
-        services['image'] = ImageService()
-        logger.info("Image service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing image service: {str(e)}")
-        services['image'] = None
-
-    try:
-        services['storage'] = StorageService()
-        logger.info("Storage service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing storage service: {str(e)}")
-        services['storage'] = None
-
-    try:
-        services['badge'] = BadgeService()
-        logger.info("Badge service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing badge service: {str(e)}")
-        services['badge'] = None
-
-    try:
-        services['story'] = StoryService()
-        logger.info("Story service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing story service: {str(e)}")
-        services['story'] = None
-
-    try:
-        services['tag'] = TagService()
-        logger.info("Tag service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing tag service: {str(e)}")
-        services['tag'] = None
-
-    try:
-        services['cultural_context'] = CulturalContextService()
-        logger.info("Cultural context service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing cultural context service: {str(e)}")
-        services['cultural_context'] = None
-
-    try:
-        services['export'] = ExportService()
-        logger.info("Export service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing export service: {str(e)}")
-        services['export'] = None
+    for name, service_class in service_classes.items():
+        try:
+            services[name] = service_class()
+            logger.info(f"{name.title()} service initialized")
+        except Exception as e:
+            logger.error(f"Error initializing {name} service: {str(e)}")
+            services[name] = None
 
     return services
 
 # Initialize all services
 services = init_services()
 
-
-# Initialize database and create default badges
-logger.info("Initializing database and default badges...")
+# Initialize database and create tables
 with app.app_context():
     try:
+        db.create_all()
+        logger.info("Database tables created successfully")
+
+        # Initialize default badges if badge service is available
         if services['badge']:
             services['badge'].initialize_default_badges()
-        logger.info("Database and badges initialized successfully")
+            logger.info("Default badges initialized")
+
     except Exception as e:
         logger.error(f"Error initializing database: {str(e)}")
 
@@ -427,7 +392,7 @@ def react_to_story(story_id):
 
         # Get updated reaction counts
         reaction_counts = db.session.query(
-            EmojiReaction.emoji, 
+            EmojiReaction.emoji,
             db.func.count(EmojiReaction.id)
         ).filter_by(story_id=story_id).group_by(EmojiReaction.emoji).all()
 
@@ -448,7 +413,7 @@ def get_story_reactions(story_id):
     try:
         # Get reaction counts
         reaction_counts = db.session.query(
-            EmojiReaction.emoji, 
+            EmojiReaction.emoji,
             db.func.count(EmojiReaction.id)
         ).filter_by(story_id=story_id).group_by(EmojiReaction.emoji).all()
 
@@ -875,4 +840,4 @@ def delete_story(story_id):
         return redirect(url_for('view_story', story_id=story_id))
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
