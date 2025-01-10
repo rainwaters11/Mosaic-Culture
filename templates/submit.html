@@ -15,12 +15,12 @@
                         <label for="title" class="form-label">Story Title</label>
                         <input type="text" class="form-control" id="title" name="title" required>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="content" class="form-label">Your Story</label>
                         <textarea class="form-control" id="content" name="content" rows="6" required></textarea>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label for="region" class="form-label">Region</label>
                         <select class="form-select" id="region" name="region" required>
@@ -32,12 +32,19 @@
                             <option value="Oceania">Oceania</option>
                         </select>
                     </div>
-                    
+
+                    <div class="mb-3">
+                        <label for="tags" class="form-label">Tags</label>
+                        <input type="text" class="form-control" id="tags" name="tags" 
+                               placeholder="Enter tags separated by commas (e.g., tradition, food, festival)">
+                        <small class="form-text text-muted">Add relevant tags to help others find your story</small>
+                    </div>
+
                     <div class="mb-3">
                         <label for="media" class="form-label">Upload Media (Optional)</label>
                         <input type="file" class="form-control" id="media" name="media" accept="image/*">
                     </div>
-                    
+
                     <div class="text-center">
                         <button type="submit" class="btn btn-primary">Submit Story</button>
                     </div>

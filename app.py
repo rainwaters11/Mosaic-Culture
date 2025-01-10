@@ -38,7 +38,7 @@ login_manager.login_view = 'login'
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 # Import models after db initialization
-from models import User, Story, Comment, Like
+from models import User, Story, Comment, Like, Tag
 
 @login_manager.user_loader
 def load_user(id):
@@ -106,11 +106,13 @@ def submit_story():
         title = request.form.get("title")
         content = request.form.get("content")
         region = request.form.get("region")
+        tags_input = request.form.get("tags", "")
 
         if not all([title, content, region]):
             flash("Please fill in all required fields", "error")
             return redirect(request.url)
 
+        # Create story
         story = Story(
             title=title,
             content=content,
@@ -119,12 +121,23 @@ def submit_story():
             submission_date=datetime.datetime.utcnow()
         )
 
+        # Handle media upload
         if "media" in request.files:
             file = request.files["media"]
             if file.filename:
                 filename = secure_filename(file.filename)
                 file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
                 story.media_path = filename
+
+        # Process tags
+        if tags_input:
+            tag_names = [t.strip().lower() for t in tags_input.split(',') if t.strip()]
+            for tag_name in tag_names:
+                tag = Tag.query.filter_by(name=tag_name).first()
+                if not tag:
+                    tag = Tag(name=tag_name)
+                    db.session.add(tag)
+                story.tags.append(tag)
 
         db.session.add(story)
         db.session.commit()
@@ -136,11 +149,20 @@ def submit_story():
 @app.route("/gallery")
 def gallery():
     region_filter = request.args.get("region")
+    tag_filter = request.args.get("tag")
+
+    query = Story.query
+
     if region_filter:
-        stories = Story.query.filter_by(region=region_filter).order_by(Story.submission_date.desc()).all()
-    else:
-        stories = Story.query.order_by(Story.submission_date.desc()).all()
-    return render_template("gallery.html", stories=stories)
+        query = query.filter_by(region=region_filter)
+
+    if tag_filter:
+        query = query.join(Story.tags).filter(Tag.name == tag_filter)
+
+    stories = query.order_by(Story.submission_date.desc()).all()
+    all_tags = Tag.query.order_by(Tag.name).all()
+
+    return render_template("gallery.html", stories=stories, all_tags=all_tags)
 
 @app.route("/like/<int:story_id>", methods=["POST"])
 @login_required

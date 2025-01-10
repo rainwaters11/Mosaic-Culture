@@ -6,13 +6,27 @@
 <div class="gallery-header mb-4">
     <h1 class="text-center">Story Gallery</h1>
     <div class="filters text-center mb-4">
-        <div class="btn-group" role="group">
-            <a href="{{ url_for('gallery') }}" class="btn btn-outline-primary">All</a>
+        <div class="btn-group mb-3" role="group">
+            <a href="{{ url_for('gallery') }}" class="btn btn-outline-primary">All Regions</a>
             <a href="{{ url_for('gallery', region='Asia') }}" class="btn btn-outline-primary">Asia</a>
             <a href="{{ url_for('gallery', region='Africa') }}" class="btn btn-outline-primary">Africa</a>
             <a href="{{ url_for('gallery', region='Europe') }}" class="btn btn-outline-primary">Europe</a>
             <a href="{{ url_for('gallery', region='Americas') }}" class="btn btn-outline-primary">Americas</a>
         </div>
+
+        {% if all_tags %}
+        <div class="tags-filter mb-3">
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+                <a href="{{ url_for('gallery') }}" class="btn btn-sm btn-outline-secondary">All Tags</a>
+                {% for tag in all_tags %}
+                <a href="{{ url_for('gallery', tag=tag.name) }}" 
+                   class="btn btn-sm btn-outline-secondary">
+                    #{{ tag.name }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -30,6 +44,17 @@
                     <span class="badge bg-secondary">{{ story.region }}</span>
                     <small class="text-muted">By {{ story.author.username }} on {{ story.submission_date.strftime('%B %d, %Y') }}</small>
                 </div>
+
+                {% if story.tags %}
+                <div class="story-tags mt-2">
+                    {% for tag in story.tags %}
+                    <a href="{{ url_for('gallery', tag=tag.name) }}" 
+                       class="badge bg-light text-dark text-decoration-none">
+                        #{{ tag.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
 
                 <div class="interactions mt-3">
                     {% if current_user.is_authenticated %}
