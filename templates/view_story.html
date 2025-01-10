@@ -56,6 +56,18 @@
                         {{ story.content|safe }}
                     </div>
 
+                    <!-- Share and Explore Section -->
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-primary" onclick="shareStory()">
+                                <i class="fas fa-share-alt me-2"></i>Share Story
+                            </button>
+                            <a href="{{ url_for('gallery') }}" class="btn btn-secondary">
+                                <i class="fas fa-compass me-2"></i>Explore More
+                            </a>
+                        </div>
+                    </div>
+
                     <!-- Export Section -->
                     <div class="export-section mb-4">
                         <h5><i class="fas fa-download me-2"></i>Export Story</h5>
@@ -82,25 +94,67 @@
                             </a>
                         </div>
                     </div>
-
-                    <div class="share-buttons mb-4">
-                        <h5><i class="fas fa-share-alt me-2"></i>Share this Story</h5>
-                        <button class="btn btn-outline-info me-2" 
-                                onclick="return shareStory('twitter', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
-                            <i class="fab fa-twitter me-2"></i>Share on Twitter
-                        </button>
-                        <button class="btn btn-outline-primary me-2" 
-                                onclick="return shareStory('facebook', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
-                            <i class="fab fa-facebook me-2"></i>Share on Facebook
-                        </button>
-                        <button class="btn btn-outline-secondary" 
-                                onclick="return shareStory('linkedin', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
-                            <i class="fab fa-linkedin me-2"></i>Share on LinkedIn
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Share Story Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Share Story</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="share-buttons">
+                    <button class="btn btn-outline-info w-100 mb-2" 
+                            onclick="shareOn('twitter')">
+                        <i class="fab fa-twitter me-2"></i>Share on Twitter
+                    </button>
+                    <button class="btn btn-outline-primary w-100 mb-2" 
+                            onclick="shareOn('facebook')">
+                        <i class="fab fa-facebook me-2"></i>Share on Facebook
+                    </button>
+                    <button class="btn btn-outline-secondary w-100" 
+                            onclick="shareOn('linkedin')">
+                        <i class="fab fa-linkedin me-2"></i>Share on LinkedIn
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function shareStory() {
+    // Show the share modal using Bootstrap's modal
+    var shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
+    shareModal.show();
+}
+
+function shareOn(platform) {
+    const title = "{{ story.title }}";
+    const url = window.location.href;
+    const text = "{{ story.content[:200] }}...";
+
+    let shareUrl;
+    switch(platform) {
+        case 'twitter':
+            shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
+            break;
+        case 'facebook':
+            shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+            break;
+        case 'linkedin':
+            shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+            break;
+    }
+
+    // Open sharing window
+    window.open(shareUrl, '_blank', 'width=600,height=400');
+}
+</script>
 {% endblock %}
