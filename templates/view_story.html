@@ -77,24 +77,12 @@
                                         <option value="Sarah">Sarah</option>
                                         <option value="Laura">Laura</option>
                                         <option value="Charlie">Charlie</option>
-                                        <option value="George">George</option>
-                                        <option value="Callum">Callum</option>
-                                        <option value="River">River</option>
-                                        <option value="Liam">Liam</option>
-                                        <option value="Charlotte">Charlotte</option>
-                                        <option value="Alice">Alice</option>
-                                        <option value="Matilda">Matilda</option>
-                                        <option value="Will">Will</option>
-                                        <option value="Jessica">Jessica</option>
-                                        <option value="Eric">Eric</option>
-                                        <option value="Chris">Chris</option>
-                                        <option value="Brian">Brian</option>
-                                        <option value="Daniel">Daniel</option>
-                                        <option value="Lily">Lily</option>
-                                        <option value="Bill">Bill</option>
                                     </select>
                                 </div>
-                                <button class="btn btn-primary" onclick="generateAudio()" id="generate-audio-btn">
+                                <button class="btn btn-primary" 
+                                        onclick="generateAudio()" 
+                                        id="generate-audio-btn"
+                                        data-story-id="{{ story.id }}">
                                     <i class="fas fa-microphone me-2"></i>Generate Audio Narration
                                 </button>
                                 <div id="audio-status" class="mt-2"></div>
@@ -108,9 +96,9 @@
                         {% endif %}
                     </div>
 
-                    <!-- Share and Explore Section -->
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <div class="btn-group" role="group">
+                    <!-- Share and Export Section -->
+                    <div class="action-buttons mb-4">
+                        <div class="btn-group">
                             <button type="button" class="btn btn-primary" onclick="shareStory()">
                                 <i class="fas fa-share-alt me-2"></i>Share Story
                             </button>
@@ -118,31 +106,16 @@
                                 <i class="fas fa-compass me-2"></i>Explore More
                             </a>
                         </div>
-                    </div>
 
-                    <!-- Export Section -->
-                    <div class="export-section mb-4">
-                        <h5><i class="fas fa-download me-2"></i>Export Story</h5>
-                        <div class="btn-group" role="group" aria-label="Export options">
+                        <!-- Export Options -->
+                        <div class="btn-group ms-2">
                             <a href="{{ url_for('export_story', story_id=story.id, format='pdf') }}" 
-                               class="btn btn-outline-primary" 
-                               title="Download as PDF">
+                               class="btn btn-outline-primary">
                                 <i class="fas fa-file-pdf me-2"></i>PDF
                             </a>
                             <a href="{{ url_for('export_story', story_id=story.id, format='epub') }}" 
-                               class="btn btn-outline-primary"
-                               title="Download as EPUB">
+                               class="btn btn-outline-primary">
                                 <i class="fas fa-book me-2"></i>EPUB
-                            </a>
-                            <a href="{{ url_for('export_story', story_id=story.id, format='txt') }}" 
-                               class="btn btn-outline-primary"
-                               title="Download as Text">
-                                <i class="fas fa-file-alt me-2"></i>TXT
-                            </a>
-                            <a href="{{ url_for('export_story', story_id=story.id, format='json') }}" 
-                               class="btn btn-outline-primary"
-                               title="Download as JSON">
-                                <i class="fas fa-file-code me-2"></i>JSON
                             </a>
                         </div>
                     </div>
@@ -152,44 +125,45 @@
     </div>
 </div>
 
+<!-- Share Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Share Story</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="share-buttons d-grid gap-2">
+                    <button class="btn btn-outline-info" onclick="shareOn('twitter')">
+                        <i class="fab fa-twitter me-2"></i>Share on Twitter
+                    </button>
+                    <button class="btn btn-outline-primary" onclick="shareOn('facebook')">
+                        <i class="fab fa-facebook me-2"></i>Share on Facebook
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="shareOn('linkedin')">
+                        <i class="fab fa-linkedin me-2"></i>Share on LinkedIn
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-// Share functionality
-function shareStory() {
-    var shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
-    shareModal.show();
-}
-
-function shareOn(platform) {
-    const title = "{{ story.title }}";
-    const url = window.location.href;
-    const text = "{{ story.content[:200] }}...";
-
-    let shareUrl;
-    switch(platform) {
-        case 'twitter':
-            shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
-            break;
-        case 'facebook':
-            shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
-            break;
-        case 'linkedin':
-            shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
-            break;
-    }
-    window.open(shareUrl, '_blank', 'width=600,height=400');
-}
-
-// Audio generation functionality
 function generateAudio() {
     const audioStatus = document.getElementById('audio-status');
     const audioPreview = document.getElementById('audio-preview');
     const generatedAudio = document.getElementById('generated-audio');
     const voiceSelection = document.getElementById('voice-selection');
     const generateButton = document.getElementById('generate-audio-btn');
-    const storyId = {{ story.id }}; // Get story ID directly from Jinja context
 
-    // Validate story ID
+    // Get story ID from data attribute
+    const storyId = generateButton.dataset.storyId;
+    console.log('Story ID:', storyId); // Debug log
+
     if (!storyId) {
+        console.error('No story ID found');
         audioStatus.innerHTML = '<div class="alert alert-danger">Error: Story ID not found</div>';
         return;
     }
@@ -199,23 +173,20 @@ function generateAudio() {
     generateButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
     audioStatus.innerHTML = '<div class="alert alert-info">Generating audio narration... This may take a few moments.</div>';
 
-    // Log request data for debugging
-    console.log('Generating audio for story:', storyId);
-    console.log('Selected voice:', voiceSelection.value);
-
+    // Make the API request
     fetch('/api/generate-audio', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            story_id: storyId,
+            story_id: parseInt(storyId, 10),
             voice: voiceSelection.value
         })
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json().then(err => Promise.reject(err));
         }
         return response.json();
     })
@@ -223,13 +194,13 @@ function generateAudio() {
         if (data.success && data.audio_url) {
             audioPreview.classList.remove('d-none');
             generatedAudio.src = data.audio_url;
-            generatedAudio.load(); // Reload the audio element
-            audioStatus.innerHTML = '<div class="alert alert-success">Audio generated successfully! You can now play the narration.</div>';
+            generatedAudio.load();
+            audioStatus.innerHTML = '<div class="alert alert-success">Audio generated successfully!</div>';
 
-            // If audio already existed
-            if (data.message === "Audio already exists") {
-                audioStatus.innerHTML = '<div class="alert alert-info">Audio narration was already available.</div>';
-            }
+            // Reload the page after a short delay to show the permanent audio player
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
         } else {
             throw new Error(data.error || 'Failed to generate audio');
         }
@@ -237,8 +208,7 @@ function generateAudio() {
     .catch(error => {
         console.error('Error:', error);
         audioStatus.innerHTML = `<div class="alert alert-danger">
-            <strong>Error:</strong> ${error.message}
-            <br><small>Please try again or contact support if the issue persists.</small>
+            <strong>Error:</strong> ${error.message || 'Unknown error occurred'}
         </div>`;
     })
     .finally(() => {
@@ -246,6 +216,31 @@ function generateAudio() {
         generateButton.disabled = false;
         generateButton.innerHTML = '<i class="fas fa-microphone me-2"></i>Generate Audio Narration';
     });
+}
+
+function shareStory() {
+    const shareModal = new bootstrap.Modal(document.getElementById('shareModal'));
+    shareModal.show();
+}
+
+function shareOn(platform) {
+    const title = encodeURIComponent("{{ story.title }}");
+    const url = encodeURIComponent(window.location.href);
+    let shareUrl;
+
+    switch(platform) {
+        case 'twitter':
+            shareUrl = `https://twitter.com/intent/tweet?text=${title}&url=${url}`;
+            break;
+        case 'facebook':
+            shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+            break;
+        case 'linkedin':
+            shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`;
+            break;
+    }
+
+    window.open(shareUrl, '_blank', 'width=600,height=400');
 }
 </script>
 {% endblock %}

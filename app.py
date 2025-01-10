@@ -564,13 +564,6 @@ def generate_audio():
                 "error": "Story not found"
             }), 404
 
-        if not story.content:
-            logger.error(f"Story {story_id} has no content")
-            return jsonify({
-                "success": False,
-                "error": "Story content is missing"
-            }), 400
-
         # Check if audio already exists
         if story.audio_url:
             logger.info(f"Audio already exists for story {story_id}")
