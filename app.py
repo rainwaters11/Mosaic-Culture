@@ -14,7 +14,6 @@ from services.badge_service import BadgeService
 from services.story_service import StoryService
 from services.tag_service import TagService
 from services.cultural_context_service import CulturalContextService
-from services.storyboard_service import StoryboardService
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -99,13 +98,6 @@ def init_services():
     except Exception as e:
         logger.error(f"Error initializing cultural context service: {str(e)}")
         services['cultural_context'] = None
-
-    try:
-        services['storyboard'] = StoryboardService()
-        logger.info("Storyboard service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing storyboard service: {str(e)}")
-        services['storyboard'] = None
 
     return services
 
@@ -228,7 +220,6 @@ def submit_story():
         tags_input = request.form.get("tags", "")
         generate_audio = request.form.get("generate_audio") == "on"
         generate_image = request.form.get("generate_image") == "on"
-        generate_soundtrack = request.form.get("generate_soundtrack") == "on"  # New field
 
         if not all([title, content, region]):
             flash("Please fill in all required fields", "error")
@@ -264,115 +255,62 @@ def submit_story():
                         flash("Error uploading media", "error")
 
             # Generate and store AI image if requested
-            if generate_image:
+            if generate_image and services['image']:
                 try:
                     logger.info("Generating AI image for story")
                     image_prompt = f"Create an illustration for '{title}': {content[:200]}..."
-                    if services['image']:
-                        image_result = services['image'].generate_image(image_prompt)
-                        if image_result["success"]:
-                            story.generated_image_url = image_result["url"]
-                            logger.info(f"Successfully generated image: {image_result['url']}")
-                        else:
-                            logger.error(f"Failed to generate image: {image_result.get('error')}")
-                            flash("Could not generate AI image: " + image_result.get('error', 'Unknown error'), "warning")
+                    image_result = services['image'].generate_image(image_prompt)
+                    if image_result["success"]:
+                        story.generated_image_url = image_result["url"]
+                        logger.info(f"Successfully generated image: {image_result['url']}")
                     else:
-                        logger.error("Image service is not available")
-                        flash("Error generating AI image: Image service unavailable", "error")
+                        logger.error(f"Failed to generate image: {image_result.get('error')}")
+                        flash("Could not generate AI image: " + image_result.get('error', 'Unknown error'), "warning")
                 except Exception as e:
                     logger.error(f"Error in image generation process: {str(e)}")
                     flash("Error generating AI image", "error")
 
             # Generate and store audio narration if requested
-            if generate_audio:
+            if generate_audio and services['audio']:
                 try:
                     logger.info("Generating audio narration")
-                    if services['audio']:
-                        audio_result = services['audio'].generate_audio(content)
-                        if audio_result["success"]:
-                            audio_data = audio_result["audio_data"]
-                            if services['storage']:
-                                upload_result = services['storage'].upload_media(
-                                    audio_data,
-                                    resource_type="audio",
-                                    public_id=f"audio_{datetime.datetime.utcnow().timestamp()}"
-                                )
-                                if upload_result and "url" in upload_result:
-                                    story.audio_url = upload_result["url"]
-                                    logger.info(f"Successfully generated audio: {upload_result['url']}")
-                                else:
-                                    logger.error("Failed to upload audio: No URL returned")
-                                    flash("Could not save audio narration", "warning")
+                    audio_result = services['audio'].generate_audio(content)
+                    if audio_result["success"]:
+                        audio_data = audio_result["audio_data"]
+                        if services['storage']:
+                            upload_result = services['storage'].upload_media(
+                                audio_data,
+                                resource_type="audio",
+                                public_id=f"audio_{datetime.datetime.utcnow().timestamp()}"
+                            )
+                            if upload_result and "url" in upload_result:
+                                story.audio_url = upload_result["url"]
+                                logger.info(f"Successfully generated audio: {upload_result['url']}")
                             else:
-                                logger.error("Storage service is not available")
-                                flash("Could not save audio narration: Storage service unavailable", "warning")
+                                logger.error("Failed to upload audio: No URL returned")
+                                flash("Could not save audio narration", "warning")
                         else:
-                            logger.error(f"Failed to generate audio: {audio_result.get('error')}")
-                            flash(f"Could not generate audio narration: {audio_result.get('error')}", "warning")
+                            logger.error("Storage service is not available")
+                            flash("Could not save audio narration: Storage service unavailable", "warning")
                     else:
-                        logger.error("Audio service is not available")
-                        flash("Error generating audio narration: Audio service unavailable", "error")
+                        logger.error(f"Failed to generate audio: {audio_result.get('error')}")
+                        flash(f"Could not generate audio narration: {audio_result.get('error')}", "warning")
                 except Exception as e:
                     logger.error(f"Error generating audio: {str(e)}")
                     flash("Error generating audio narration", "error")
 
-            # Generate and store soundtrack if requested
-            if generate_soundtrack:
-                try:
-                    logger.info("Generating soundtrack for story")
-                    if services['audio']:
-                        soundtrack_result = services['audio'].generate_soundtrack(content, region, theme)
-                        if soundtrack_result["success"] and soundtrack_result.get("audio_data"):
-                            if services['storage']:
-                                upload_result = services['storage'].upload_media(
-                                    soundtrack_result["audio_data"],
-                                    resource_type="audio",
-                                    public_id=f"soundtrack_{datetime.datetime.utcnow().timestamp()}"
-                                )
-                                if upload_result and "url" in upload_result:
-                                    story.soundtrack_url = upload_result["url"]
-                                    logger.info(f"Successfully generated soundtrack: {upload_result['url']}")
-                                else:
-                                    logger.error("Failed to upload soundtrack: No URL returned")
-                                    flash("Could not save soundtrack", "warning")
-                            else:
-                                logger.error("Storage service is not available")
-                                flash("Could not save soundtrack: Storage service unavailable", "warning")
-                        else:
-                            error_msg = soundtrack_result.get("error", "Failed to generate soundtrack")
-                            logger.error(f"Failed to generate soundtrack: {error_msg}")
-                            flash(error_msg, "warning")
-                    else:
-                        logger.error("Audio service is not available")
-                        flash("Error generating soundtrack: Audio service unavailable", "error")
-                except Exception as e:
-                    logger.error(f"Error generating soundtrack: {str(e)}")
-                    flash("Error generating soundtrack", "error")
-
             # Process tags with cultural suggestions
-            if tags_input or content:  # Check both user tags and story content
+            if tags_input or content:
                 try:
-                    # Get user-provided tags
                     user_tags = [t.strip().lower() for t in tags_input.split(',') if t.strip()]
-
-                    # Get AI-suggested cultural tags if there's story content
                     suggested_tags = []
                     if content and services['tag']:
                         suggested_tags = services['tag'].suggest_cultural_tags(content, region)
-                    else:
-                        logger.error("Tag service is not available")
-                        flash("Error processing tags: Tag service unavailable", "error")
-
-                    # Combine user tags and suggested tags (removing duplicates)
                     all_tags = list(set(user_tags + suggested_tags))
-
-                    # Create or get tags and associate with story
                     for tag_name in all_tags:
                         tag = services['tag'].create_or_get_tag(tag_name)
                         if tag and tag not in story.tags:
                             story.tags.append(tag)
-
-                    logger.info(f"Processed tags for story {story.id}: {all_tags}")
                 except Exception as e:
                     logger.error(f"Error processing tags: {str(e)}")
                     flash("Error processing tags", "error")
@@ -391,7 +329,6 @@ def submit_story():
                         flash(f"Congratulations! You earned new badges: {', '.join(badge_names)}", "success")
                 else:
                     logger.error("Badge service is not available")
-                    flash("Error checking badges: Badge service unavailable", "error")
 
             except Exception as e:
                 logger.error(f"Error saving story: {str(e)}")
@@ -632,98 +569,6 @@ def get_cultural_insights():
     except Exception as e:
         logger.error(f"Error getting cultural insights: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
-
-@app.route("/api/generate-soundtrack", methods=["POST"])
-@login_required
-@cache.memoize(timeout=300)  # Cache soundtracks for 5 minutes
-def generate_soundtrack():
-    """Generate a dynamic soundtrack for a story"""
-    try:
-        data = request.get_json()
-        content = data.get("content")
-        region = data.get("region")
-        theme = data.get("theme")
-
-        if not all([content, region, theme]):
-            return jsonify({"success": False, "error": "Missing required fields"}), 400
-
-        # Create cache key based on content preview
-        cache_key = f"soundtrack_{region}_{theme}_{content[:100]}"
-        cached_soundtrack = cache.get(cache_key)
-
-        if cached_soundtrack:
-            logger.info("Returning cached soundtrack")
-            return jsonify({"success": True, "audio_url": cached_soundtrack})
-
-        if services['audio'] and services['storage']:
-            # Generate the soundtrack
-            soundtrack_result = services['audio'].generate_soundtrack(content, region, theme)
-            if soundtrack_result["success"] and soundtrack_result.get("audio_data"):
-                # Upload soundtrack to storage
-                try:
-                    upload_result = services['storage'].upload_media(
-                        soundtrack_result["audio_data"],
-                        resource_type="audio",
-                        public_id=f"soundtrack_{datetime.datetime.utcnow().timestamp()}"
-                    )
-                    if upload_result and "url" in upload_result:
-                        audio_url = upload_result["url"]
-                        cache.set(cache_key, audio_url)
-                        return jsonify({"success": True, "audio_url": audio_url})
-                    else:
-                        logger.error("Failed to upload soundtrack: No URL returned")
-                        return jsonify({"success": False, "error": "Failed to save soundtrack"}), 500
-                except Exception as e:
-                    logger.error(f"Error uploading soundtrack: {str(e)}")
-                    return jsonify({"success": False, "error": str(e)}), 500
-            else:
-                error_msg = soundtrack_result.get("error", "Failed to generate soundtrack")
-                logger.error(f"Failed to generate soundtrack: {error_msg}")
-                return jsonify({"success": False, "error": error_msg}), 500
-        else:
-            logger.error("Audio or Storage service is not available")
-            return jsonify({"success": False, "error": "Audio or Storage service unavailable"}), 503
-
-    except Exception as e:
-        logger.error(f"Error generating soundtrack: {str(e)}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
-@app.route("/api/generate-storyboard", methods=["POST"]) # Added route
-@login_required
-@cache.memoize(timeout=300)  # Cache storyboards for 5 minutes
-def generate_storyboard():
-    """Generate a visual storyboard for a story"""
-    try:
-        data = request.get_json()
-        content = data.get("content")
-
-        if not content:
-            return jsonify({"success": False, "error": "Missing content"}), 400
-
-        # Create cache key based on content preview
-        cache_key = f"storyboard_{content[:100]}"
-        cached_storyboard = cache.get(cache_key)
-
-        if cached_storyboard:
-            logger.info("Returning cached storyboard")
-            return jsonify({"success": True, "panels": cached_storyboard})
-
-        if services['storyboard']:
-            # Generate the storyboard
-            storyboard = services['storyboard'].create_storyboard(content)
-            if storyboard:
-                cache.set(cache_key, storyboard)
-                return jsonify({"success": True, "panels": storyboard})
-            else:
-                return jsonify({"success": False, "error": "Failed to generate storyboard"}), 500
-        else:
-            logger.error("Storyboard service is not available")
-            return jsonify({"success": False, "error": "Storyboard service unavailable"}), 503
-
-    except Exception as e:
-        logger.error(f"Error generating storyboard: {str(e)}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
 
 @app.route("/api/generate-audio", methods=["POST"])
 @login_required
