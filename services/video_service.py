@@ -10,8 +10,8 @@ class VideoService:
     def __init__(self):
         """Initialize video generation service"""
         self.api_key = os.environ.get('RUNWAYML_API_KEY')
-        # Base URL for RunwayML API updated with correct endpoint
-        self.api_url = "https://api.runwayml.com/v1"
+        # Base URL for RunwayML API
+        self.api_url = "https://api.runwayml.com"
         self.is_available = bool(self.api_key)
 
         if not self.is_available:
@@ -39,17 +39,15 @@ class VideoService:
             # Format prompt for better video generation
             prompt = f"{title}\n\nDescription: {description}"
 
-            # Prepare the request payload according to RunwayML's format
+            # Prepare the request payload for RunwayML Gen-2 model
             payload = {
                 "prompt": prompt,
-                "mode": "text-to-video",
-                "parameters": {
-                    "duration": duration,
-                    "fps": 30,
-                    "guidance_scale": 7.5,
-                    "steps": 50,
-                    "seed": -1  # Random seed
-                }
+                "negative_prompt": "",
+                "num_frames": duration * 24,  # 24 fps
+                "num_steps": 50,
+                "guidance_scale": 17.5,
+                "width": 1024,
+                "height": 576
             }
 
             headers = {
@@ -58,16 +56,17 @@ class VideoService:
                 "Accept": "application/json"
             }
 
-            # Make the API request to inference endpoint
-            endpoint = f"{self.api_url}/inference"
+            # Make the API request to Gen-2 video generation endpoint
+            endpoint = f"{self.api_url}/v1/generations"
             logger.info(f"Requesting video generation for story: {title}")
             logger.debug(f"Using endpoint: {endpoint}")
+            logger.debug(f"Request payload: {payload}")
 
             response = requests.post(
                 endpoint,
                 json=payload,
                 headers=headers,
-                timeout=30  # Add timeout for the request
+                timeout=120  # Increased timeout for video generation
             )
 
             # Log the response status and content for debugging
@@ -76,11 +75,11 @@ class VideoService:
 
             if response.status_code == 200:
                 video_data = response.json()
-                if 'output' in video_data and 'video_url' in video_data['output']:
+                if 'artifacts' in video_data and len(video_data['artifacts']) > 0:
                     logger.info(f"Successfully generated video for story: {title}")
                     return {
                         "success": True,
-                        "video_url": video_data['output']['video_url'],
+                        "video_url": video_data['artifacts'][0]['uri'],
                         "content_type": "video/mp4"
                     }
                 else:
