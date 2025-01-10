@@ -32,6 +32,11 @@
             src="https://connect.facebook.net/en_US/sdk.js#version=v18.0">
     </script>
 
+    <!-- Loading Spinner Overlay -->
+    <div class="spinner-overlay" id="loadingSpinner">
+        <div class="spinner"></div>
+    </div>
+
     <nav class="navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
@@ -93,9 +98,12 @@
         {% block content %}{% endblock %}
     </div>
 
-    <!-- Floating Action Button -->
+    <!-- Floating Action Button with tooltip -->
     {% if not request.endpoint == 'submit_story' %}
-    <a href="{{ url_for('submit_story') }}" class="fab" aria-label="Submit Story">
+    <a href="{{ url_for('submit_story') }}" 
+       class="fab" 
+       aria-label="Submit Story"
+       data-tooltip="Share your cultural story">
         <i class="fas fa-plus"></i>
     </a>
     {% endif %}
@@ -177,9 +185,39 @@
 
             // Observe all cards and sections for animation
             document.querySelectorAll('.card, .hero-section').forEach(el => {
-                el.classList.remove('fade-in');  // Remove initial animation class
+                el.classList.remove('fade-in');  
                 observer.observe(el);
             });
+        });
+
+        // Loading Spinner Functions
+        const loadingSpinner = {
+            show: function() {
+                document.getElementById('loadingSpinner').classList.add('active');
+            },
+            hide: function() {
+                document.getElementById('loadingSpinner').classList.remove('active');
+            }
+        };
+
+        // Show loading spinner during form submissions
+        document.addEventListener('submit', function(e) {
+            if (e.target.tagName === 'FORM') {
+                loadingSpinner.show();
+            }
+        });
+
+        // Show loading spinner during navigation (except for same-page anchors)
+        document.addEventListener('click', function(e) {
+            const link = e.target.closest('a');
+            if (link && !link.getAttribute('href').startsWith('#') && !link.getAttribute('href').startsWith('javascript:')) {
+                loadingSpinner.show();
+            }
+        });
+
+        // Hide loading spinner when page is fully loaded
+        window.addEventListener('load', function() {
+            loadingSpinner.hide();
         });
     </script>
 </body>
