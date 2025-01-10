@@ -1,7 +1,7 @@
 """ElevenLabs audio generation service"""
 import logging
 import os
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 import requests
 
 logger = logging.getLogger(__name__)
@@ -21,17 +21,24 @@ class AudioService:
             return
 
         try:
+            # Add proper authorization header
+            headers = {"xi-api-key": self.api_key}
             response = requests.get(
                 f"{self.base_url}/voices",
-                headers={"xi-api-key": self.api_key}
+                headers=headers
             )
+
             if response.status_code == 200:
                 self.is_available = True
                 logger.info("ElevenLabs service is available")
+                # Log available voices for debugging
+                voices = response.json().get("voices", [])
+                logger.info(f"Available voices: {[voice['name'] for voice in voices]}")
             else:
-                logger.warning(f"ElevenLabs service not available: {response.text}")
+                error_msg = response.json() if response.text else "No error details available"
+                logger.warning(f"ElevenLabs service not available. Status code: {response.status_code}, Error: {error_msg}")
         except Exception as e:
-            logger.warning(f"Error checking ElevenLabs service: {str(e)}")
+            logger.error(f"Error checking ElevenLabs service: {str(e)}")
 
     def generate_audio(self, text: str, voice_name: Optional[str] = None) -> Dict[str, Union[bool, bytes, str]]:
         """
@@ -67,16 +74,14 @@ class AudioService:
             }
             data = {
                 "text": text,
-                "model_id": "eleven_multilingual_v2",
+                "model_id": "eleven_monolingual_v1",
                 "voice_settings": {
                     "stability": 0.75,
-                    "similarity_boost": 0.75,
-                    "style": 0.5,
-                    "use_speaker_boost": True
+                    "similarity_boost": 0.75
                 }
             }
 
-            # Make the API request
+            # Make the API request with proper error handling
             response = requests.post(url, json=data, headers=headers)
 
             if response.status_code == 200:
@@ -99,9 +104,8 @@ class AudioService:
     def _get_voice_id(self, voice_name: str) -> Optional[str]:
         """Get the voice ID for a given voice name"""
         try:
-            url = f"{self.base_url}/voices"
             headers = {"xi-api-key": self.api_key}
-            response = requests.get(url, headers=headers)
+            response = requests.get(f"{self.base_url}/voices", headers=headers)
 
             if response.status_code == 200:
                 voices = response.json().get("voices", [])
@@ -127,13 +131,12 @@ class AudioService:
             return {
                 "success": False,
                 "error": "ElevenLabs service is not available",
-                "voices": ["Bella", "Antoni", "Arnold", "Adam", "Domi", "Elli", "Josh"]  # Fallback voices
+                "voices": []
             }
 
         try:
-            url = f"{self.base_url}/voices"
             headers = {"xi-api-key": self.api_key}
-            response = requests.get(url, headers=headers)
+            response = requests.get(f"{self.base_url}/voices", headers=headers)
 
             if response.status_code == 200:
                 voices = response.json().get("voices", [])
@@ -143,7 +146,7 @@ class AudioService:
             return {
                 "success": False,
                 "error": f"Error fetching voices: {response.text}",
-                "voices": ["Bella", "Antoni", "Arnold", "Adam", "Domi", "Elli", "Josh"]  # Fallback voices
+                "voices": []
             }
 
         except Exception as e:
@@ -152,9 +155,8 @@ class AudioService:
             return {
                 "success": False,
                 "error": error_msg,
-                "voices": ["Bella", "Antoni", "Arnold", "Adam", "Domi", "Elli", "Josh"]  # Fallback voices
+                "voices": []
             }
-
     def generate_soundtrack(self, story_content: str, region: str, theme: str) -> Dict[str, Union[bool, bytes, str]]:
         """
         Generate a dynamic soundtrack based on story content and cultural context
