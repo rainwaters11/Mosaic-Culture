@@ -108,7 +108,7 @@
                             </div>
 
                             <div class="col-md-6">
-                                <h5>Story Actions</h5>
+                                <h5>Export Story</h5>
                                 {% if current_user.is_authenticated and (current_user.id == story.user_id or current_user.is_admin) %}
                                 <div class="btn-group">
                                     <a href="{{ url_for('export_story', story_id=story.id, format='pdf') }}" 
@@ -120,17 +120,9 @@
                                         <i class="fas fa-book"></i> EPUB
                                     </a>
                                     <a href="{{ url_for('export_story', story_id=story.id, format='txt') }}" 
-                                       class="btn btn-outline-secondary me-2">
+                                       class="btn btn-outline-secondary">
                                         <i class="fas fa-file-alt"></i> TXT
                                     </a>
-                                    <form action="{{ url_for('delete_story', story_id=story.id) }}" 
-                                          method="POST" 
-                                          onsubmit="return confirm('Are you sure you want to delete this story? This action cannot be undone.')"
-                                          style="display: inline;">
-                                        <button type="submit" class="btn btn-outline-danger">
-                                            <i class="fas fa-trash"></i> Delete Story
-                                        </button>
-                                    </form>
                                 </div>
                                 {% endif %}
                             </div>

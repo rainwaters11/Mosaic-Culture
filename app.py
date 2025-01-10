@@ -6,13 +6,16 @@ from flask_caching import Cache
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
-from functools import wraps
 from database import db
-from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge, EmojiReaction
-from services import (
-    AudioService, ImageService, StorageService, BadgeService,
-    StoryService, TagService, CulturalContextService, ExportService
-)
+from services.audio_service import AudioService
+from services.image_service import ImageService
+from services.storage_service import StorageService
+from services.badge_service import BadgeService
+from services.story_service import StoryService
+from services.tag_service import TagService
+from services.cultural_context_service import CulturalContextService
+from services.export_service import ExportService
+from functools import wraps
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -22,77 +25,111 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # App configuration
+app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "a secret key"
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
 }
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "a secret key"
 app.config["UPLOAD_FOLDER"] = "static/uploads"
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
 
 # Configure caching
 app.config["CACHE_TYPE"] = "simple"
-app.config["CACHE_DEFAULT_TIMEOUT"] = 300
+app.config["CACHE_DEFAULT_TIMEOUT"] = 300  # 5 minutes default cache timeout
 cache = Cache(app)
 
-# Initialize database
+# Initialize extensions
 db.init_app(app)
-
-# Initialize login manager
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# Create upload directory
+# Ensure upload directory exists
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-
-@login_manager.user_loader
-def load_user(id):
-    return User.query.get(int(id))
 
 # Initialize services
 def init_services():
-    """Initialize all services with proper error handling"""
+    """Initialize all services and handle any initialization errors gracefully"""
     services = {}
-    service_classes = {
-        'audio': AudioService,
-        'image': ImageService,
-        'storage': StorageService,
-        'badge': BadgeService,
-        'story': StoryService,
-        'tag': TagService,
-        'cultural_context': CulturalContextService,
-        'export': ExportService
-    }
+    try:
+        services['audio'] = AudioService()
+        logger.info("Audio service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing audio service: {str(e)}")
+        services['audio'] = None
 
-    for name, service_class in service_classes.items():
-        try:
-            services[name] = service_class()
-            logger.info(f"{name.title()} service initialized")
-        except Exception as e:
-            logger.error(f"Error initializing {name} service: {str(e)}")
-            services[name] = None
+    try:
+        services['image'] = ImageService()
+        logger.info("Image service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing image service: {str(e)}")
+        services['image'] = None
+
+    try:
+        services['storage'] = StorageService()
+        logger.info("Storage service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing storage service: {str(e)}")
+        services['storage'] = None
+
+    try:
+        services['badge'] = BadgeService()
+        logger.info("Badge service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing badge service: {str(e)}")
+        services['badge'] = None
+
+    try:
+        services['story'] = StoryService()
+        logger.info("Story service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing story service: {str(e)}")
+        services['story'] = None
+
+    try:
+        services['tag'] = TagService()
+        logger.info("Tag service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing tag service: {str(e)}")
+        services['tag'] = None
+
+    try:
+        services['cultural_context'] = CulturalContextService()
+        logger.info("Cultural context service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing cultural context service: {str(e)}")
+        services['cultural_context'] = None
+
+    try:
+        services['export'] = ExportService()
+        logger.info("Export service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing export service: {str(e)}")
+        services['export'] = None
 
     return services
 
 # Initialize all services
 services = init_services()
 
-# Initialize database and create tables
+# Import models after db initialization
+from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge, EmojiReaction
+
+# Initialize database and create default badges
+logger.info("Initializing database and default badges...")
 with app.app_context():
     try:
         db.create_all()
-        logger.info("Database tables created successfully")
-
-        # Initialize default badges if badge service is available
         if services['badge']:
             services['badge'].initialize_default_badges()
-            logger.info("Default badges initialized")
-
+        logger.info("Database and badges initialized successfully")
     except Exception as e:
         logger.error(f"Error initializing database: {str(e)}")
+
+@login_manager.user_loader
+def load_user(id):
+    return User.query.get(int(id))
 
 @app.route("/")
 def index():
@@ -392,7 +429,7 @@ def react_to_story(story_id):
 
         # Get updated reaction counts
         reaction_counts = db.session.query(
-            EmojiReaction.emoji,
+            EmojiReaction.emoji, 
             db.func.count(EmojiReaction.id)
         ).filter_by(story_id=story_id).group_by(EmojiReaction.emoji).all()
 
@@ -413,7 +450,7 @@ def get_story_reactions(story_id):
     try:
         # Get reaction counts
         reaction_counts = db.session.query(
-            EmojiReaction.emoji,
+            EmojiReaction.emoji, 
             db.func.count(EmojiReaction.id)
         ).filter_by(story_id=story_id).group_by(EmojiReaction.emoji).all()
 
@@ -804,40 +841,3 @@ def export_story(story_id, format):
         app.logger.error(f"Error exporting story: {str(e)}")
         flash("Error exporting story", "error")
         return redirect(url_for('view_story', story_id=story_id))
-
-@app.route("/story/delete/<int:story_id>", methods=["POST"])
-@login_required
-def delete_story(story_id):
-    """Delete a story and all its associated data"""
-    try:
-        story = Story.query.get_or_404(story_id)
-
-        # Check if user is authorized to delete this story
-        if story.user_id != current_user.id and not current_user.is_admin:
-            flash("You don't have permission to delete this story", "error")
-            return redirect(url_for('view_story', story_id=story_id))
-
-        # Delete associated reactions
-        EmojiReaction.query.filter_by(story_id=story_id).delete()
-
-        # Delete associated likes
-        StoryLike.query.filter_by(story_id=story_id).delete()
-
-        # Delete associated comments
-        Comment.query.filter_by(story_id=story_id).delete()
-
-        # Delete the story itself
-        db.session.delete(story)
-        db.session.commit()
-
-        flash("Story deleted successfully", "success")
-        return redirect(url_for('gallery'))
-
-    except Exception as e:
-        app.logger.logger.error(f"Error deleting story: {str(e)}")
-        db.session.rollback()
-        flash("Error deleting story", "error")
-        return redirect(url_for('view_story', story_id=story_id))
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
