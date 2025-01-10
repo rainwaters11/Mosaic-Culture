@@ -196,7 +196,7 @@ body {
     top: 0;
     z-index: 1000;
     transition: background-color 0.3s ease;
-    padding: 1rem 0;
+    padding: 1rem 0; /* Added padding for better spacing */
 }
 
 .navbar-brand img {
@@ -377,6 +377,95 @@ body {
     }
 }
 
+
+/* Add animations to existing elements */
+.hero-section {
+    animation: slideUp 0.5s ease-out;
+}
+
+/* Loading animation */
+.loading {
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Loading Spinner */
+.spinner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid var(--primary-color);
+    border-top: 5px solid var(--accent-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner-overlay.active {
+    display: flex;
+}
+
+/* Tooltips */
+[data-tooltip] {
+    position: relative;
+    cursor: help;
+}
+
+[data-tooltip]:before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 5px 10px;
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 14px;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 2px 4px var(--border-color);
+}
+
+[data-tooltip]:hover:before {
+    opacity: 1;
+    visibility: visible;
+}
 
 /* Featured Stories Section */
 .featured-stories {
@@ -771,56 +860,4 @@ body {
 .emoji-btn .count {
     font-size: 0.9rem;
     font-weight: 500;
-}
-
-/* Story of the Day Styles */
-.story-of-day-section {
-    padding: 2rem 0;
-    margin: 2rem 0;
-}
-
-.story-highlight {
-    border: none;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    background: var(--card-bg);
-    overflow: hidden;
-    border-radius: 1rem;
-}
-
-.story-highlight:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
-}
-
-.story-highlight .card-body {
-    padding: 2rem;
-}
-
-.story-highlight .card-title {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 1rem;
-    color: var(--text-color);
-}
-
-.story-highlight .card-text {
-    font-size: 1.1rem;
-    line-height: 1.6;
-    color: var(--text-color);
-    margin-bottom: 1.5rem;
-}
-
-.story-highlight .story-meta {
-    margin-bottom: 1.5rem;
-}
-
-.story-highlight .badge {
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    border-radius: 2rem;
-}
-
-.story-highlight .engagement-stats {
-    font-size: 1.1rem;
 }

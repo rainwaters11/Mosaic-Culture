@@ -49,7 +49,7 @@
                         <div class="story-item mb-4">
                             <h5><a href="{{ url_for('view_story', story_id=story.id) }}">{{ story.title }}</a></h5>
                             <p class="text-muted">
-                                Posted on {% if story.submission_date %}{{ story.submission_date.strftime('%B %d, %Y') }}{% else %}Unknown Date{% endif %} |
+                                Posted on {{ story.submission_date.strftime('%B %d, %Y') }} |
                                 {{ story.likes|length }} likes |
                                 {{ story.comments|length }} comments
                             </p>
