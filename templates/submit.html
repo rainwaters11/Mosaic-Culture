@@ -58,10 +58,15 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="tags" class="form-label">Tags</label>
-                        <input type="text" class="form-control" id="tags" name="tags" 
-                               placeholder="Enter tags separated by commas (e.g., tradition, food, festival)">
-                        <small class="form-text text-muted">Add relevant tags to help others find your story</small>
+                        <label for="tags" class="form-label">Cultural Tags</label>
+                        <div class="tag-input-container">
+                            <input type="text" class="form-control" id="tags" name="tags" 
+                                   placeholder="Enter tags separated by commas">
+                            <div id="tagSuggestions" class="mt-2">
+                                <small class="text-muted">Suggested cultural tags will appear here</small>
+                            </div>
+                        </div>
+                        <small class="form-text text-muted">Add relevant cultural tags to help others find your story</small>
                     </div>
 
                     <div class="mb-3">
@@ -105,6 +110,59 @@ document.addEventListener('DOMContentLoaded', function() {
     const contentTextarea = document.getElementById('content');
     const submitButton = document.querySelector('button[type="submit"]');
     const form = document.querySelector('form');
+    const regionSelect = document.getElementById('region');
+    const tagInput = document.getElementById('tags');
+    const tagSuggestions = document.getElementById('tagSuggestions');
+
+    let suggestionTimeout;
+    const getSuggestions = () => {
+        clearTimeout(suggestionTimeout);
+        suggestionTimeout = setTimeout(async () => {
+            const content = contentTextarea.value;
+            const region = regionSelect.value;
+
+            if (!content || !region) return;
+
+            try {
+                const response = await fetch('/api/suggest_tags', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ content, region })
+                });
+
+                const data = await response.json();
+                if (data.success && data.tags) {
+                    const suggestions = data.tags
+                        .filter(tag => !tagInput.value.includes(tag))
+                        .map(tag => `
+                            <span class="badge bg-secondary me-1 mb-1 suggested-tag" 
+                                  style="cursor: pointer;">${tag}</span>
+                        `)
+                        .join('');
+
+                    tagSuggestions.innerHTML = suggestions ? 
+                        `<small class="text-muted d-block mb-2">Suggested cultural tags:</small>${suggestions}` :
+                        '<small class="text-muted">No additional suggestions</small>';
+
+                    document.querySelectorAll('.suggested-tag').forEach(tag => {
+                        tag.addEventListener('click', () => {
+                            const currentTags = tagInput.value.split(',').map(t => t.trim()).filter(t => t);
+                            currentTags.push(tag.textContent.trim());
+                            tagInput.value = currentTags.join(', ');
+                            tag.remove();
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error('Error getting tag suggestions:', error);
+            }
+        }, 1000); 
+    };
+
+    contentTextarea.addEventListener('input', getSuggestions);
+    regionSelect.addEventListener('change', getSuggestions);
 
     useAiCheckbox.addEventListener('change', async function() {
         if (this.checked) {

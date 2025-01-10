@@ -11,6 +11,7 @@ from services.image_service import ImageService
 from services.storage_service import StorageService
 from services.badge_service import BadgeService
 from services.story_service import StoryService
+from services.tag_service import TagService # Added import
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -44,6 +45,7 @@ image_service = ImageService()
 storage_service = StorageService()
 badge_service = BadgeService()
 story_service = StoryService()
+tag_service = TagService() # Added service initialization
 
 # Import models after db initialization
 from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge
@@ -197,17 +199,27 @@ def submit_story():
                     logger.error(f"Error generating audio: {str(e)}")
                     flash("Error generating audio narration", "error")
 
-            # Process tags
-            if tags_input:
+            # Process tags with cultural suggestions
+            if tags_input or content:  # Check both user tags and story content
                 try:
-                    tag_names = [t.strip().lower() for t in tags_input.split(',') if t.strip()]
-                    for tag_name in tag_names:
-                        tag = Tag.query.filter_by(name=tag_name).first()
-                        if not tag:
-                            tag = Tag(name=tag_name)
-                            db.session.add(tag)
-                            db.session.flush()  # Get tag ID without committing
-                        story.tags.append(tag)
+                    # Get user-provided tags
+                    user_tags = [t.strip().lower() for t in tags_input.split(',') if t.strip()]
+
+                    # Get AI-suggested cultural tags if there's story content
+                    suggested_tags = []
+                    if content:
+                        suggested_tags = tag_service.suggest_cultural_tags(content, region)
+
+                    # Combine user tags and suggested tags (removing duplicates)
+                    all_tags = list(set(user_tags + suggested_tags))
+
+                    # Create or get tags and associate with story
+                    for tag_name in all_tags:
+                        tag = tag_service.create_or_get_tag(tag_name)
+                        if tag and tag not in story.tags:
+                            story.tags.append(tag)
+
+                    logger.info(f"Processed tags for story {story.id}: {all_tags}")
                 except Exception as e:
                     logger.error(f"Error processing tags: {str(e)}")
                     flash("Error processing tags", "error")
@@ -345,4 +357,25 @@ def generate_story():
 
     except Exception as e:
         logger.error(f"Error in generate_story: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/suggest_tags", methods=["POST"])
+@login_required
+def suggest_tags():
+    """API endpoint to get tag suggestions for a story"""
+    try:
+        data = request.get_json()
+        content = data.get("content", "")
+        region = data.get("region", "")
+
+        if not content or not region:
+            return jsonify({"success": False, "error": "Missing content or region"}), 400
+
+        suggested_tags = tag_service.suggest_cultural_tags(content, region)
+        return jsonify({
+            "success": True,
+            "tags": suggested_tags
+        })
+    except Exception as e:
+        logger.error(f"Error suggesting tags: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
