@@ -1,0 +1,114 @@
+Here’s a rewritten prompt for your request:
+
+---
+
+### **Prompt for Replit: Implement Video Generation Feature**
+> **Objective**: Implement a feature in the Mosaic Culture app that allows users to generate a short video based on their input (e.g., a story or theme). Ensure the feature is fully functional and integrates seamlessly with the app's existing framework. Follow these steps:
+>
+> ### **1. User Input Form**
+> - Create a simple form where users can input a story, theme, or keywords for the video.
+> - Fields to include:
+>   - **Title**: A short title for the video.
+>   - **Description**: Keywords or a short story to guide the video generation.
+>   - **Duration**: Allow users to specify the video length (e.g., 10, 15, or 30 seconds).
+> - Example form:
+>   ```html
+>   <form id="video-form">
+>     <label for="title">Video Title:</label>
+>     <input type="text" id="title" placeholder="Enter video title" required>
+>
+>     <label for="description">Description/Theme:</label>
+>     <textarea id="description" placeholder="Enter a short story or theme" required></textarea>
+>
+>     <label for="duration">Duration (seconds):</label>
+>     <select id="duration">
+>       <option value="10">10</option>
+>       <option value="15">15</option>
+>       <option value="30">30</option>
+>     </select>
+>
+>     <button type="submit">Generate Video</button>
+>   </form>
+>   ```
+>
+> ### **2. Backend Integration**
+> - Use an AI video generation API (e.g., **RunwayML**, **Pictory**, or a similar service).
+> - Write a function to send the user input to the API and process the response:
+>   ```python
+>   import requests
+>
+>   def generate_video(title, description, duration):
+>       api_url = "https://api.runwayml.com/v1/videos/generate"  # Replace with actual API
+>       headers = {"Authorization": "Bearer YOUR_API_KEY"}
+>       data = {
+>           "title": title,
+>           "description": description,
+>           "duration": duration
+>       }
+>
+>       response = requests.post(api_url, headers=headers, json=data)
+>       if response.status_code == 200:
+>           return response.json()["video_url"]
+>       else:
+>           return {"error": "Video generation failed"}
+>   ```
+> - Ensure error handling for cases like invalid API keys, timeouts, or failed responses.
+>
+> ### **3. Frontend Integration**
+> - Display a loading animation while the video is being generated.
+> - Once the video is ready, display it in a video player with options to:
+>   - Play the video.
+>   - Download the video.
+>   - Share the video.
+> - Example display:
+>   ```html
+>   <div id="video-result" style="display: none;">
+>     <h3>Your Video is Ready!</h3>
+>     <video controls>
+>       <source id="video-src" src="" type="video/mp4">
+>       Your browser does not support the video tag.
+>     </video>
+>     <button id="download-video">Download</button>
+>   </div>
+>   ```
+>   ```javascript
+>   document.getElementById('video-form').addEventListener('submit', async function (e) {
+>       e.preventDefault();
+>       const title = document.getElementById('title').value;
+>       const description = document.getElementById('description').value;
+>       const duration = document.getElementById('duration').value;
+>
+>       // Call API to generate video
+>       const videoUrl = await fetch('/api/generate_video', {
+>           method: 'POST',
+>           headers: { 'Content-Type': 'application/json' },
+>           body: JSON.stringify({ title, description, duration })
+>       }).then(res => res.json()).then(data => data.video_url);
+>
+>       // Update UI with video
+>       document.getElementById('video-src').src = videoUrl;
+>       document.getElementById('video-result').style.display = 'block';
+>   });
+>   ```
+>
+> ### **4. Testing and Validation**
+> - Test the feature with different inputs (e.g., long and short descriptions, varying durations).
+> - Handle edge cases:
+>   - If the API fails, show an error message like “Video generation failed. Please try again.”
+>   - If the user inputs invalid data, prompt them to correct it.
+>
+> ### **Deliverables**
+> - A fully functional video generation feature integrated into the Mosaic Culture app.
+> - User-friendly interface to input story details and view the generated video.
+> - Error handling for API or user input issues.
+>
+> Ensure the feature is responsive, intuitive, and adds significant value to the user experience.
+
+---
+
+### **Why This Works**
+- **Clarity**: Breaks the task into manageable steps.
+- **Focus**: Emphasizes functionality, user experience, and error handling.
+- **Feasibility**: Leverages existing APIs for video generation, reducing development complexity.
+
+Let me know if you'd like additional refinements!

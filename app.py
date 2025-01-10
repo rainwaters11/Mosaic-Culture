@@ -14,6 +14,7 @@ from services.badge_service import BadgeService
 from services.story_service import StoryService
 from services.tag_service import TagService
 from services.cultural_context_service import CulturalContextService
+from services.video_service import VideoService
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -98,6 +99,13 @@ def init_services():
     except Exception as e:
         logger.error(f"Error initializing cultural context service: {str(e)}")
         services['cultural_context'] = None
+
+    try:
+        services['video'] = VideoService()
+        logger.info("Video service initialized")
+    except Exception as e:
+        logger.error(f"Error initializing video service: {str(e)}")
+        services['video'] = None
 
     return services
 
@@ -686,3 +694,46 @@ def view_story(story_id):
     """View a single story, used for social media sharing"""
     story = Story.query.get_or_404(story_id)
     return render_template("view_story.html", story=story)
+
+@app.route("/api/generate-video", methods=["POST"])
+@login_required
+def generate_video():
+    """Generate a video based on story content"""
+    try:
+        data = request.get_json()
+        title = data.get("title")
+        content = data.get("content")
+        duration = data.get("duration", 15)  # Default to 15 seconds
+
+        if not all([title, content]):
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+
+        if services['video']:
+            # Generate the video
+            video_result = services['video'].generate_video(title, content, duration)
+
+            if video_result["success"]:
+                # Store video URL in story if needed
+                if "story_id" in data:
+                    story = Story.query.get(data["story_id"])
+                    if story:
+                        story.video_url = video_result["video_url"]
+                        db.session.commit()
+
+                return jsonify({
+                    "success": True,
+                    "video_url": video_result["video_url"]
+                })
+            else:
+                logger.error(f"Failed to generate video: {video_result.get('error')}")
+                return jsonify({
+                    "success": False,
+                    "error": video_result.get("error", "Failed to generate video")
+                }), 500
+        else:
+            logger.error("Video service is not available")
+            return jsonify({"success": False, "error": "Video service unavailable"}), 503
+
+    except Exception as e:
+        logger.error(f"Error in generate_video endpoint: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
