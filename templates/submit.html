@@ -104,6 +104,12 @@
     </div>
 </div>
 
+<div class="mb-3">
+    <div id="culturalInsights" class="mt-3">
+        <!-- Cultural insights will be displayed here -->
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const useAiCheckbox = document.getElementById('use_ai');
@@ -243,6 +249,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         `;
                         contentTextarea.insertAdjacentHTML('afterend', sensitivityHtml);
                     }
+                    // Get cultural insights for the generated story
+                    await getCulturalInsights(data.content, region, theme);
                 } else {
                     throw new Error(data.error || 'Failed to generate story');
                 }
@@ -256,6 +264,69 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    // Add function to fetch and display cultural insights
+    const getCulturalInsights = async (content, region, theme) => {
+        try {
+            showLoading('Analyzing cultural context...');
+            const response = await fetch('/api/cultural-insights', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content, region, theme })
+            });
+
+            const data = await response.json();
+            if (data.success && data.analysis) {
+                const analysis = JSON.parse(data.analysis);
+                const insightsHtml = `
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Cultural Context Insights</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <h6>Historical Context</h6>
+                                <p>${analysis.historical_context.significance}</p>
+                                <small class="text-muted">Period: ${analysis.historical_context.period}</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <h6>Cultural Elements</h6>
+                                <ul class="list-unstyled">
+                                    ${analysis.cultural_elements.traditions.map(t => 
+                                        `<li><i class="fas fa-circle"></i> ${t}</li>`).join('')}
+                                </ul>
+                            </div>
+
+                            <div class="mb-3">
+                                <h6>Modern Relevance</h6>
+                                <p>${analysis.modern_relevance.contemporary_significance}</p>
+                            </div>
+
+                            ${data.resources ? `
+                                <div class="mb-3">
+                                    <h6>Learn More</h6>
+                                    <ul class="list-unstyled">
+                                        ${JSON.parse(data.resources).topics.map(topic => 
+                                            `<li><i class="fas fa-book"></i> ${topic}</li>`).join('')}
+                                    </ul>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                document.getElementById('culturalInsights').innerHTML = insightsHtml;
+            }
+        } catch (error) {
+            console.error('Error getting cultural insights:', error);
+            document.getElementById('culturalInsights').innerHTML = 
+                '<div class="alert alert-danger">Error retrieving cultural insights</div>';
+        } finally {
+            hideLoading();
+        }
+    };
 
     // Form submission handling
     form.addEventListener('submit', async (e) => {
@@ -277,12 +348,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (!data.success) {
                         throw new Error(data.error);
                     }
+                    const content = contentTextarea.value;
+                    const region = regionSelect.value;
+                    const theme = document.getElementById('theme').value;
+                    await getCulturalInsights(content, region, theme);
                 }
             } catch (error) {
                 console.error('Error:', error);
                 alert('An error occurred while submitting your story. Please try again.');
                 hideLoading();
             }
+        } else {
+            const content = contentTextarea.value;
+            const region = regionSelect.value;
+            const theme = document.getElementById('theme').value;
+            await getCulturalInsights(content, region, theme);
         }
     });
 });

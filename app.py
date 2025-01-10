@@ -13,6 +13,7 @@ from services.storage_service import StorageService
 from services.badge_service import BadgeService
 from services.story_service import StoryService
 from services.tag_service import TagService
+from services.cultural_context_service import CulturalContextService
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -52,6 +53,7 @@ storage_service = StorageService()
 badge_service = BadgeService()
 story_service = StoryService()
 tag_service = TagService()
+cultural_context_service = CulturalContextService()
 
 # Import models after db initialization
 from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge
@@ -413,4 +415,43 @@ def suggest_tags():
         })
     except Exception as e:
         logger.error(f"Error suggesting tags: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/cultural-insights", methods=["POST"])
+@login_required
+@cache.memoize(timeout=300)  # Cache insights for 5 minutes
+def get_cultural_insights():
+    """Get cultural context insights for a story"""
+    try:
+        data = request.get_json()
+        content = data.get("content")
+        region = data.get("region")
+        theme = data.get("theme")
+
+        if not all([content, region, theme]):
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+
+        # Create cache key based on content preview
+        cache_key = f"insights_{region}_{theme}_{content[:100]}"
+        cached_insights = cache.get(cache_key)
+
+        if cached_insights:
+            logger.info("Returning cached cultural insights")
+            return jsonify(cached_insights)
+
+        # Get cultural insights
+        insights = cultural_context_service.analyze_context(content, region, theme)
+        if insights["success"]:
+            # Get additional learning resources
+            resources = cultural_context_service.get_learning_resources(content, region)
+            if resources["success"]:
+                insights["resources"] = resources["resources"]
+
+            cache.set(cache_key, insights)
+            return jsonify(insights)
+
+        return jsonify({"success": False, "error": "Failed to get cultural insights"}), 500
+
+    except Exception as e:
+        logger.error(f"Error getting cultural insights: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
