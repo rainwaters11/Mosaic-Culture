@@ -675,6 +675,10 @@ def view_story(story_id):
         story = Story.query.get_or_404(story_id)
         logger.debug(f"Rendering story view for story_id: {story_id}")
         logger.debug(f"Story object found: {story and story.id}")  # Add debug logging
+        if not story:
+            logger.error(f"Story not found with ID: {story_id}")
+            flash("Story not found", "error")
+            return redirect(url_for("gallery"))
         return render_template("view_story.html", story=story)
     except Exception as e:
         logger.error(f"Error viewing story {story_id}: {str(e)}")
