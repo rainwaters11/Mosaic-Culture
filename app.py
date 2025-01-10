@@ -13,7 +13,6 @@ from services.storage_service import StorageService
 from services.badge_service import BadgeService
 from services.story_service import StoryService
 from services.tag_service import TagService
-from services.cultural_context_service import CulturalContextService
 from services.video_service import VideoService
 from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge, StoryShare # Assuming StoryShare is defined elsewhere
 
@@ -93,13 +92,6 @@ def init_services():
     except Exception as e:
         logger.error(f"Error initializing tag service: {str(e)}")
         services['tag'] = None
-
-    try:
-        services['cultural_context'] = CulturalContextService()
-        logger.info("Cultural context service initialized")
-    except Exception as e:
-        logger.error(f"Error initializing cultural context service: {str(e)}")
-        services['cultural_context'] = None
 
     try:
         services['video'] = VideoService()
@@ -314,7 +306,7 @@ def submit_story():
                     user_tags = [t.strip().lower() for t in tags_input.split(',') if t.strip()]
                     suggested_tags = []
                     if content and services['tag']:
-                        suggested_tags = services['tag'].suggest_cultural_tags(content, region)
+                        suggested_tags = services['tag'].suggest_tags(content, region) # Removed cultural_tags
                     all_tags = list(set(user_tags + suggested_tags))
                     for tag_name in all_tags:
                         tag = services['tag'].create_or_get_tag(tag_name)
@@ -458,33 +450,13 @@ def generate_story():
         if services['story']:
             generated_content = services['story'].generate_story(title, theme, region)
             if generated_content:
-                try:
-                    import json
-                    sensitivity_analysis = generated_content.get("sensitivity_analysis")
-                    analysis = json.loads(sensitivity_analysis) if sensitivity_analysis else {}
-
-                    result = {
-                        "success": True,
-                        "content": generated_content["content"],
-                        "sensitivity": {
-                            "rating": analysis.get("overall_rating", 0),
-                            "positive_aspects": analysis.get("positive_aspects", []),
-                            "suggestions": analysis.get("improvement_suggestions", ""),
-                            "issues": analysis.get("issues", [])
-                        }
-                    }
-
-                    # Cache the successful result
-                    cache.set(cache_key, result)
-                    return jsonify(result)
-                except Exception as e:
-                    logger.error(f"Error parsing sensitivity analysis: {str(e)}")
-                    result = {
-                        "success": True,
-                        "content": generated_content["content"]
-                    }
-                    cache.set(cache_key, result)
-                    return jsonify(result)
+                result = {
+                    "success": True,
+                    "content": generated_content["content"]
+                }
+                # Cache the successful result
+                cache.set(cache_key, result)
+                return jsonify(result)
             else:
                 return jsonify({"success": False, "error": "Failed to generate story"}), 500
         else:
@@ -520,7 +492,7 @@ def suggest_tags():
             })
 
         if services['tag']:
-            suggested_tags = services['tag'].suggest_cultural_tags(content, region)
+            suggested_tags = services['tag'].suggest_tags(content, region) #removed cultural_tags
             cache.set(cache_key, suggested_tags)
             return jsonify({
                 "success": True,
