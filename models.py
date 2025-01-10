@@ -20,7 +20,9 @@ class Story(db.Model):
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=False)
     region = db.Column(db.String(100), nullable=False)
-    media_path = db.Column(db.String(200))
+    media_url = db.Column(db.String(500))  # URL for uploaded media (Cloudinary)
+    generated_image_url = db.Column(db.String(500))  # URL for DALL-E generated image
+    audio_url = db.Column(db.String(500))  # URL for ElevenLabs generated audio
     submission_date = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     likes = db.relationship('Like', backref='story', lazy=True)
     comments = db.relationship('Comment', backref='story', lazy=True)

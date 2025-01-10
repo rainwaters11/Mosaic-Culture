@@ -7,6 +7,9 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required
 import datetime
+from services.audio_service import AudioService
+from services.image_service import ImageService
+from services.storage_service import StorageService
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -36,6 +39,11 @@ login_manager.login_view = 'login'
 
 # Ensure upload directory exists
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+
+# Initialize services
+audio_service = AudioService()
+image_service = ImageService()
+storage_service = StorageService()
 
 # Import models after db initialization
 from models import User, Story, Comment, Like, Tag
@@ -107,6 +115,8 @@ def submit_story():
         content = request.form.get("content")
         region = request.form.get("region")
         tags_input = request.form.get("tags", "")
+        generate_audio = request.form.get("generate_audio") == "on"
+        generate_image = request.form.get("generate_image") == "on"
 
         if not all([title, content, region]):
             flash("Please fill in all required fields", "error")
@@ -125,9 +135,41 @@ def submit_story():
         if "media" in request.files:
             file = request.files["media"]
             if file.filename:
-                filename = secure_filename(file.filename)
-                file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-                story.media_path = filename
+                try:
+                    file_data = file.read()
+                    upload_result = storage_service.upload_media(file_data)
+                    if upload_result:
+                        story.media_url = upload_result["url"]
+                except Exception as e:
+                    app.logger.error(f"Error uploading media: {str(e)}")
+                    flash("Error uploading media", "error")
+
+        # Generate and store audio narration if requested
+        if generate_audio:
+            try:
+                audio_data = audio_service.generate_audio(content)
+                if audio_data:
+                    upload_result = storage_service.upload_media(
+                        audio_data, 
+                        resource_type="audio",
+                        public_id=f"audio_{datetime.datetime.utcnow().timestamp()}"
+                    )
+                    if upload_result:
+                        story.audio_url = upload_result["url"]
+            except Exception as e:
+                app.logger.error(f"Error generating audio: {str(e)}")
+                flash("Error generating audio narration", "error")
+
+        # Generate and store AI image if requested
+        if generate_image:
+            try:
+                image_prompt = f"Create an illustration for a story about {title}: {content[:100]}..."
+                image_url = image_service.generate_image(image_prompt)
+                if image_url:
+                    story.generated_image_url = image_url
+            except Exception as e:
+                app.logger.error(f"Error generating image: {str(e)}")
+                flash("Error generating AI image", "error")
 
         # Process tags
         if tags_input:

@@ -42,7 +42,28 @@
 
                     <div class="mb-3">
                         <label for="media" class="form-label">Upload Media (Optional)</label>
-                        <input type="file" class="form-control" id="media" name="media" accept="image/*">
+                        <input type="file" class="form-control" id="media" name="media" accept="image/*,video/*,audio/*">
+                        <small class="form-text text-muted">Support images, videos, and audio files</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="generate_audio" name="generate_audio">
+                            <label class="form-check-label" for="generate_audio">
+                                Generate Audio Narration
+                            </label>
+                            <small class="form-text text-muted d-block">Uses AI to create an audio version of your story</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="generate_image" name="generate_image">
+                            <label class="form-check-label" for="generate_image">
+                                Generate AI Illustration
+                            </label>
+                            <small class="form-text text-muted d-block">Creates an AI-generated image based on your story</small>
+                        </div>
                     </div>
 
                     <div class="text-center">
