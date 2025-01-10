@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -71,6 +71,11 @@
                         <a class="nav-link" href="{{ url_for('register') }}">Register</a>
                     </li>
                     {% endif %}
+                    <li class="nav-item">
+                        <button class="theme-toggle nav-link" id="theme-toggle" aria-label="Toggle theme">
+                            <i class="fas fa-sun" id="theme-icon"></i>
+                        </button>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -98,20 +103,36 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
     <script src="https://platform.twitter.com/widgets.js"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-
-    <!-- Social Media Sharing -->
     <script>
-        // Initialize Facebook SDK
-        window.fbAsyncInit = function() {
-            FB.init({
-                appId: '{{ config.get("FACEBOOK_APP_ID", "") }}',
-                xfbml: true,
-                version: 'v18.0'
-            });
-        };
+        // Theme toggling functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeToggle = document.getElementById('theme-toggle');
+            const themeIcon = document.getElementById('theme-icon');
+            const html = document.documentElement;
 
-        // Generic share function
+            // Check for saved theme preference
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            html.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+
+            themeToggle.addEventListener('click', () => {
+                const currentTheme = html.getAttribute('data-theme');
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+
+                html.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                updateThemeIcon(newTheme);
+            });
+
+            function updateThemeIcon(theme) {
+                themeIcon.className = theme === 'light' ? 'fas fa-sun' : 'fas fa-moon';
+            }
+        });
+
+        // Initialize Feather icons
+        feather.replace();
+
+        // Social Media Sharing
         function shareStory(platform, url, title, description) {
             const shareUrls = {
                 twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`,
@@ -122,6 +143,15 @@
             window.open(shareUrls[platform], '_blank', 'width=600,height=400');
             return false;
         }
+
+        // Initialize Facebook SDK
+        window.fbAsyncInit = function() {
+            FB.init({
+                appId: '{{ config.get("FACEBOOK_APP_ID", "") }}',
+                xfbml: true,
+                version: 'v18.0'
+            });
+        };
     </script>
 </body>
 </html>
