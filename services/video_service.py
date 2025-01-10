@@ -2,7 +2,7 @@
 import os
 import logging
 import time
-from typing import Optional, Dict, Union, Callable
+from typing import Optional, Dict, Union
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -13,7 +13,7 @@ class VideoService:
     def __init__(self):
         """Initialize video generation service"""
         self.api_key = os.environ.get('RUNWAYML_API_KEY')
-        self.api_url = "https://api.runwayml.com/v1"  
+        self.api_url = "https://api.runwayml.com/v1"
         self.is_available = bool(self.api_key)
 
         if not self.is_available:
@@ -30,12 +30,20 @@ class VideoService:
         self.session.mount('https://', HTTPAdapter(max_retries=retries))
 
         try:
+            # Validate API key using a test generation request
             headers = self._get_headers()
             logger.info("Validating RunwayML API key...")
 
-            response = self.session.get(
-                f"{self.api_url}/status",  
+            # Make a minimal test request to validate the API key
+            test_payload = {
+                "prompt": "Test prompt",
+                "mode": "text",
+            }
+
+            response = self.session.post(
+                f"{self.api_url}/text",
                 headers=headers,
+                json=test_payload,
                 timeout=10
             )
 
@@ -67,20 +75,13 @@ class VideoService:
             return "Duration must be between 5 and 60 seconds"
         return None
 
-    def generate_video(
-        self, 
-        title: str, 
-        description: str, 
-        duration: int = 15,
-        progress_callback: Optional[Callable[[int, str], None]] = None
-    ) -> Dict[str, Union[bool, str]]:
+    def generate_video(self, title: str, description: str, duration: int = 15) -> Dict[str, Union[bool, str]]:
         """
-        Generate a video based on story content using RunwayML with progress tracking
+        Generate a video based on story content using RunwayML
         Args:
             title: The title of the story
             description: Story content or description for video generation
             duration: Duration of the video in seconds (default: 15)
-            progress_callback: Optional callback function to report progress
         Returns:
             Dictionary containing success status and either video URL or error message
         """
@@ -99,56 +100,43 @@ class VideoService:
             }
 
         try:
-            if progress_callback:
-                progress_callback(5, "Preparing video generation")
-
             # Format prompt for better video generation
             prompt = f"{title}\n\nDescription: {description}"
 
             # Prepare the request payload
             payload = {
                 "prompt": prompt,
-                "negative_prompt": "blurry, low quality, distorted",
-                "num_frames": duration * 24,  
+                "negative_prompt": "",
+                "fps": 24,
                 "width": 1024,
                 "height": 576,
-                "guidance_scale": 7.5,
-                "num_inference_steps": 50,
-                "model": "text-to-video",  
-                "output_format": "mp4"
+                "num_frames": duration * 24,  # Convert duration to frames
+                "num_inference_steps": 50
             }
 
             headers = self._get_headers()
 
-            if progress_callback:
-                progress_callback(10, "Starting video generation")
-
+            # Make the API request
             logger.info(f"Requesting video generation for story: {title}")
-            logger.debug(f"Using endpoint: {self.api_url}/generations")
+            logger.debug(f"Using endpoint: {self.api_url}/inference")
             logger.debug(f"Request payload: {payload}")
 
             start_time = time.time()
             response = self.session.post(
-                f"{self.api_url}/generations",
+                f"{self.api_url}/inference",
                 json=payload,
                 headers=headers,
-                timeout=300  
+                timeout=300  # 5 minutes timeout for video generation
             )
             logger.debug(f"Request took {time.time() - start_time:.2f} seconds")
 
             # Log the response status and content for debugging
             logger.debug(f"Response status: {response.status_code}")
-            logger.debug(f"Response content: {response.text[:200]}...")
+            logger.debug(f"Response content: {response.text[:200]}...")  # Log first 200 chars
 
             if response.status_code == 200:
-                if progress_callback:
-                    progress_callback(50, "Processing video")
-
                 result = response.json()
-                if 'output' in result and 'video_url' in result['output']:
-                    if progress_callback:
-                        progress_callback(90, "Finalizing video")
-
+                if 'output' in result:
                     logger.info(f"Successfully generated video for story: {title}")
                     return {
                         "success": True,

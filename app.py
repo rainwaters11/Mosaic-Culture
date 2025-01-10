@@ -1,15 +1,12 @@
 import os
 import logging
-import uuid
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
-from flask_login import current_user, login_user, logout_user, login_required
-from flask_migrate import Migrate
+from flask_login import LoginManager, current_user, login_user, logout_user, login_required
+from flask_caching import Cache
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
-
-from extensions import db, login_manager, cache
-from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge, StoryShare
+from database import db
 from services.audio_service import AudioService
 from services.image_service import ImageService
 from services.storage_service import StorageService
@@ -18,47 +15,38 @@ from services.story_service import StoryService
 from services.tag_service import TagService
 from services.cultural_context_service import CulturalContextService
 from services.video_service import VideoService
+from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge, StoryShare # Assuming StoryShare is defined elsewhere
 
-# Configure logging first
+# Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-def create_app():
-    # Create the app
-    app = Flask(__name__)
-    logger.info("Initializing Flask application...")
+# Create the app
+app = Flask(__name__)
 
-    # App configuration
-    app.config.update(
-        SECRET_KEY=os.environ.get("FLASK_SECRET_KEY", "a secret key"),
-        SQLALCHEMY_DATABASE_URI=os.environ.get("DATABASE_URL"),
-        SQLALCHEMY_ENGINE_OPTIONS={
-            "pool_recycle": 300,
-            "pool_pre_ping": True,
-        },
-        UPLOAD_FOLDER="static/uploads",
-        MAX_CONTENT_LENGTH=16 * 1024 * 1024,  # 16MB max file size
-        CACHE_TYPE="simple",
-        CACHE_DEFAULT_TIMEOUT=300  # 5 minutes default cache timeout
-    )
+# App configuration
+app.secret_key = os.environ.get("FLASK_SECRET_KEY") or "a secret key"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+app.config["UPLOAD_FOLDER"] = "static/uploads"
+app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB max file size
 
-    # Initialize extensions with app
-    db.init_app(app)
-    cache.init_app(app)
-    login_manager.init_app(app)
-    login_manager.login_view = 'login'
+# Configure caching
+app.config["CACHE_TYPE"] = "simple"
+app.config["CACHE_DEFAULT_TIMEOUT"] = 300  # 5 minutes default cache timeout
+cache = Cache(app)
 
-    # Initialize Flask-Migrate
-    migrate = Migrate(app, db)
+# Initialize extensions
+db.init_app(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
-    # Ensure upload directory exists
-    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-
-    return app, migrate
-
-# Create the application instance and migrations
-app, migrate = create_app()
-
+# Ensure upload directory exists
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 # Initialize services
 def init_services():
@@ -125,30 +113,23 @@ def init_services():
 # Initialize all services
 services = init_services()
 
+# Import models after db initialization
+#from models import User, Story, Comment, StoryLike, Tag, Badge, UserBadge
+
 # Initialize database and create default badges
 logger.info("Initializing database and default badges...")
 with app.app_context():
     try:
+        db.create_all()
         if services['badge']:
             services['badge'].initialize_default_badges()
         logger.info("Database and badges initialized successfully")
     except Exception as e:
         logger.error(f"Error initializing database: {str(e)}")
 
-
 @login_manager.user_loader
 def load_user(id):
-    try:
-        # Use a fresh session for user loading to avoid transaction issues
-        with db.session.begin():
-            user = User.query.get(int(id))
-            if user:
-                db.session.expunge(user)
-            return user
-    except Exception as e:
-        logger.error(f"Error loading user: {str(e)}")
-        db.session.rollback()
-        return None
+    return User.query.get(int(id))
 
 @app.route("/")
 def index():
@@ -714,62 +695,24 @@ def view_story(story_id):
     story = Story.query.get_or_404(story_id)
     return render_template("view_story.html", story=story)
 
-VIDEO_GENERATION_STATUS = {}
-
-@app.route("/api/video-preview/<preview_id>")
-def get_video_preview_status(preview_id):
-    """Get the status of a video generation preview"""
-    status = VIDEO_GENERATION_STATUS.get(preview_id, {
-        'status': 'not_found',
-        'progress': 0,
-        'message': 'Preview not found'
-    })
-    return jsonify(status)
-
 @app.route("/api/generate-video", methods=["POST"])
 @login_required
 def generate_video():
-    """Generate a video based on story content with preview support"""
+    """Generate a video based on story content"""
     try:
         data = request.get_json()
         title = data.get("title")
         content = data.get("content")
         duration = data.get("duration", 15)  # Default to 15 seconds
-        preview_id = str(uuid.uuid4())
 
         if not all([title, content]):
             return jsonify({"success": False, "error": "Missing required fields"}), 400
 
-        # Initialize preview status
-        VIDEO_GENERATION_STATUS[preview_id] = {
-            'status': 'starting',
-            'progress': 0,
-            'message': 'Initializing video generation'
-        }
-
         if services['video']:
-            def update_progress(progress, message):
-                VIDEO_GENERATION_STATUS[preview_id] = {
-                    'status': 'in_progress',
-                    'progress': progress,
-                    'message': message
-                }
-
-            # Generate the video with progress updates
-            video_result = services['video'].generate_video(
-                title, content, duration, 
-                progress_callback=update_progress
-            )
+            # Generate the video
+            video_result = services['video'].generate_video(title, content, duration)
 
             if video_result["success"]:
-                # Update final status
-                VIDEO_GENERATION_STATUS[preview_id] = {
-                    'status': 'completed',
-                    'progress': 100,
-                    'message': 'Video generation complete',
-                    'video_url': video_result["video_url"]
-                }
-
                 # Store video URL in story if needed
                 if "story_id" in data:
                     story = Story.query.get(data["story_id"])
@@ -779,20 +722,12 @@ def generate_video():
 
                 return jsonify({
                     "success": True,
-                    "preview_id": preview_id,
                     "video_url": video_result["video_url"]
                 })
             else:
-                # Update error status
-                VIDEO_GENERATION_STATUS[preview_id] = {
-                    'status': 'error',
-                    'progress': 0,
-                    'message': video_result.get("error", "Failed to generate video")
-                }
                 logger.error(f"Failed to generate video: {video_result.get('error')}")
                 return jsonify({
                     "success": False,
-                    "preview_id": preview_id,
                     "error": video_result.get("error", "Failed to generate video")
                 }), 500
         else:
@@ -853,7 +788,3 @@ def track_share():
             "success": False,
             "error": str(e)
         }), 500
-
-if __name__ == "__main__":
-    logger.info("Starting Flask development server...")
-    app.run(host="0.0.0.0", port=5000, debug=True)

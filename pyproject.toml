@@ -18,5 +18,4 @@ dependencies = [
     "cloudinary>=1.42.1",
     "elevenlabs>=1.50.3",
     "flask-caching>=2.3.0",
-    "flask-migrate>=4.0.7",
 ]

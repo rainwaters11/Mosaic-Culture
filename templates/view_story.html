@@ -29,7 +29,7 @@
                      class="card-img-top" 
                      alt="{{ story.title }}">
                 {% endif %}
-
+                
                 <div class="card-body">
                     <h1 class="card-title">{{ story.title }}</h1>
                     <div class="story-meta mb-3">
@@ -74,116 +74,22 @@
 
                     <div class="share-buttons mb-4">
                         <h5>Share this Story</h5>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-outline-info" 
-                                    onclick="shareStory('twitter')">
-                                <i class="fab fa-twitter"></i> Twitter
-                            </button>
-                            <button class="btn btn-outline-primary" 
-                                    onclick="shareStory('facebook')">
-                                <i class="fab fa-facebook"></i> Facebook
-                            </button>
-                            <button class="btn btn-outline-secondary" 
-                                    onclick="shareStory('linkedin')">
-                                <i class="fab fa-linkedin"></i> LinkedIn
-                            </button>
-                        </div>
+                        <button class="btn btn-outline-info me-2" 
+                                onclick="return shareStory('twitter', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
+                            <i class="fab fa-twitter"></i> Share on Twitter
+                        </button>
+                        <button class="btn btn-outline-primary me-2" 
+                                onclick="return shareStory('facebook', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
+                            <i class="fab fa-facebook"></i> Share on Facebook
+                        </button>
+                        <button class="btn btn-outline-secondary" 
+                                onclick="return shareStory('linkedin', '{{ request.url }}', '{{ story.title }}', '{{ story.content[:200] }}...')">
+                            <i class="fab fa-linkedin"></i> Share on LinkedIn
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<script>
-async function shareStory(platform) {
-    const url = window.location.href;
-    const title = "{{ story.title }}";
-    const description = "{{ story.content[:200] }}...";
-
-    let shareUrl;
-    switch(platform) {
-        case 'twitter':
-            shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(description)}&url=${encodeURIComponent(url)}`;
-            break;
-        case 'facebook':
-            shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
-            break;
-        case 'linkedin':
-            shareUrl = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`;
-            break;
-    }
-
-    // Open share dialog
-    window.open(shareUrl, '_blank', 'width=600,height=400');
-
-    // Track share
-    try {
-        const response = await fetch('/api/track-share', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                platform,
-                url
-            })
-        });
-        const data = await response.json();
-        if (!data.success) {
-            console.error('Error tracking share:', data.error);
-        }
-    } catch (error) {
-        console.error('Error tracking share:', error);
-    }
-}
-</script>
-
-<style>
-.share-buttons .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    transition: all 0.3s ease;
-}
-
-.share-buttons .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.story-content {
-    font-size: 1.1rem;
-    line-height: 1.6;
-    color: #2c3e50;
-}
-
-.story-meta {
-    color: #6c757d;
-    font-size: 0.9rem;
-}
-
-.story-tags .badge {
-    margin-right: 0.5rem;
-    padding: 0.5rem 0.8rem;
-    border: 1px solid #dee2e6;
-}
-
-.card {
-    border: none;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    margin-bottom: 2rem;
-}
-
-.card-img-top {
-    max-height: 400px;
-    object-fit: cover;
-}
-
-audio {
-    width: 100%;
-    margin: 1rem 0;
-}
-</style>
 {% endblock %}
