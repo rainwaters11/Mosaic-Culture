@@ -1,0 +1,105 @@
+Here’s a precise and actionable **prompt for Replit Whisperer** to debug and fix the **Error: Missing story_id** issue:
+
+---
+
+### **Prompt for Replit Whisperer: Fix Missing `story_id` Error**
+> **Objective**: Fix the `Error: Missing story_id` issue in the Mosaic Culture app. Ensure that `story_id` is correctly passed, handled, and used in the application. Follow these steps:
+>
+> ### **1. Identify Where `story_id` is Missing**
+> - **Trace the Source**:
+>   - Check if `story_id` is passed from the frontend to the backend.
+>   - Verify if the `story_id` parameter is included in:
+>     - **URL** (e.g., `/stories/<story_id>`)
+>     - **Request Payload** (e.g., JSON in a POST or PUT request).
+> - Add debugging logs in the backend to check if `story_id` is received:
+>   ```python
+>   @app.route("/story/<story_id>", methods=["GET"])
+>   def get_story(story_id):
+>       if not story_id:
+>           return {"error": "Missing story_id"}, 400
+>       print(f"Received story_id: {story_id}")
+>       # Fetch the story from the database
+>   ```
+
+---
+
+> ### **2. Debug the Frontend**
+> - Ensure the frontend correctly sends the `story_id`:
+>   - **URL**:
+>     - If the route expects `story_id` in the URL (e.g., `/story/<story_id>`), confirm it is correctly appended:
+>       ```javascript
+>       const storyId = 123;
+>       fetch(`/story/${storyId}`, { method: "GET" });
+>       ```
+>   - **Request Body**:
+>     - If `story_id` is sent in the request body (e.g., POST request), ensure it is included:
+>       ```javascript
+>       fetch("/story", {
+>           method: "POST",
+>           headers: { "Content-Type": "application/json" },
+>           body: JSON.stringify({ story_id: 123 }),
+>       });
+>       ```
+> - Add debugging logs in the frontend:
+>   ```javascript
+>   console.log("Sending story_id:", storyId);
+>   ```
+
+---
+
+> ### **3. Validate Backend Logic**
+> - Check how `story_id` is retrieved in the backend:
+>   - **From URL Parameters**:
+>     ```python
+>     story_id = request.view_args.get("story_id")
+>     if not story_id:
+>         return {"error": "Missing story_id"}, 400
+>     ```
+>   - **From Request JSON**:
+>     ```python
+>     story_id = request.json.get("story_id")
+>     if not story_id:
+>         return {"error": "Missing story_id in request body"}, 400
+>     ```
+> - Ensure consistent handling of `story_id` between the frontend and backend.
+
+---
+
+> ### **4. Test the Data Flow**
+> - Verify the complete flow of `story_id`:
+>   - Frontend → Backend → Database → Response
+> - Add debugging logs at each step to confirm `story_id` is passed correctly:
+>   ```python
+>   print(f"Received story_id: {story_id}")
+>   print(f"Fetching story with ID: {story_id}")
+>   ```
+
+---
+
+> ### **5. Handle Edge Cases**
+> - Ensure the app handles scenarios where `story_id` is missing or invalid:
+>   - Return a meaningful error message:
+>     ```python
+>     if not story_id:
+>         return {"error": "Story ID is required to perform this action"}, 400
+>     ```
+>   - Validate `story_id` (e.g., it should be a valid number or UUID).
+
+---
+
+> ### **6. Test and Validate**
+> - Test the app with:
+>   - A valid `story_id`.
+>   - A missing or invalid `story_id`.
+> - Confirm the error is resolved and the app behaves as expected.
+
+---
+
+### **Deliverables**
+1. A fully functional app where `story_id` is passed and handled correctly.
+2. Debugging logs added to trace the flow of `story_id` from the frontend to the backend.
+3. Clear error handling for missing or invalid `story_id`.
+
+---
+
+This prompt ensures a structured debugging and resolution process. Let me know if you need further refinements! 🚀

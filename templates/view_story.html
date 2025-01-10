@@ -80,9 +80,8 @@
                                     </select>
                                 </div>
                                 <button class="btn btn-primary" 
-                                        onclick="generateAudio()" 
-                                        id="generate-audio-btn"
-                                        data-story-id="{{ story.id }}">
+                                        onclick="generateAudio({{ story.id }})" 
+                                        id="generate-audio-btn">
                                     <i class="fas fa-microphone me-2"></i>Generate Audio Narration
                                 </button>
                                 <div id="audio-status" class="mt-2"></div>
@@ -151,22 +150,20 @@
 </div>
 
 <script>
-function generateAudio() {
+function generateAudio(storyId) {
     const audioStatus = document.getElementById('audio-status');
     const audioPreview = document.getElementById('audio-preview');
     const generatedAudio = document.getElementById('generated-audio');
     const voiceSelection = document.getElementById('voice-selection');
     const generateButton = document.getElementById('generate-audio-btn');
 
-    // Get story ID from data attribute
-    const storyId = generateButton.dataset.storyId;
-    console.log('Story ID:', storyId); // Debug log
-
     if (!storyId) {
-        console.error('No story ID found');
+        console.error('No story ID provided');
         audioStatus.innerHTML = '<div class="alert alert-danger">Error: Story ID not found</div>';
         return;
     }
+
+    console.log('Generating audio for story:', storyId); // Debug log
 
     // Disable the generate button and show loading state
     generateButton.disabled = true;
@@ -180,7 +177,7 @@ function generateAudio() {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            story_id: parseInt(storyId, 10),
+            story_id: storyId,
             voice: voiceSelection.value
         })
     })
