@@ -220,7 +220,6 @@ body {
 
 
 /* Add animations to existing elements */
-
 .hero-section {
     animation: slideUp 0.5s ease-out;
 }
@@ -266,8 +265,12 @@ body {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .spinner-overlay.active {
@@ -303,4 +306,130 @@ body {
 [data-tooltip]:hover:before {
     opacity: 1;
     visibility: visible;
+}
+
+/* Add to existing CSS */
+
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(135deg, var(--accent-color), #ff8a65);
+    color: var(--primary-color);
+    padding: 4rem 0;
+    margin-bottom: 3rem;
+    border-radius: 0 0 2rem 2rem;
+    box-shadow: 0 4px 6px var(--border-color);
+}
+
+.hero-section h1 {
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.hero-section .lead {
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+    opacity: 0.9;
+}
+
+/* Featured Stories Section */
+.featured-stories {
+    padding: 2rem 0;
+    margin-bottom: 4rem;
+}
+
+.featured-stories .card {
+    transform: translateY(0);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 2rem;
+}
+
+.featured-stories .card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 16px var(--border-color);
+}
+
+.featured-stories .card-img-top {
+    height: 250px;
+    object-fit: cover;
+    border-top-left-radius: calc(0.375rem - 1px);
+    border-top-right-radius: calc(0.375rem - 1px);
+}
+
+.featured-stories .card-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-color);
+}
+
+.featured-stories .card-text {
+    color: var(--text-color);
+    opacity: 0.8;
+    line-height: 1.6;
+}
+
+.featured-stories .badge {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+    margin-right: 0.5rem;
+    border-radius: 2rem;
+}
+
+/* Trending Stories Section */
+.trending-stories {
+    background-color: var(--background-color);
+    padding: 3rem 0;
+    border-radius: 2rem;
+    margin: 2rem 0;
+}
+
+.trending-stories .card {
+    background: var(--card-bg);
+    border: none;
+    box-shadow: 0 2px 4px var(--border-color);
+}
+
+.trending-stories .card-img-top {
+    height: 200px;
+    object-fit: cover;
+}
+
+.section-title {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 25%;
+    width: 50%;
+    height: 3px;
+    background: var(--accent-color);
+    border-radius: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 2rem 0;
+    }
+
+    .hero-section h1 {
+        font-size: 2.5rem;
+    }
+
+    .hero-section .lead {
+        font-size: 1.2rem;
+    }
+
+    .featured-stories .card-img-top,
+    .trending-stories .card-img-top {
+        height: 180px;
+    }
 }
