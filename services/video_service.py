@@ -30,10 +30,10 @@ class VideoService:
         self.session.mount('https://', HTTPAdapter(max_retries=retries))
 
         try:
-            # Validate API key by making a test request
+            # Validate API key by making a test request to list models
             headers = self._get_headers()
             response = self.session.get(
-                f"{self.api_url}/v1/user",
+                f"{self.api_url}/v1/models",
                 headers=headers,
                 timeout=10
             )
