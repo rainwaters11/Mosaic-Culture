@@ -68,30 +68,32 @@
                             </div>
                             <small class="text-muted">Audio narration is available and ready to play.</small>
                         {% else %}
-                            <div class="generate-audio-section">
-                                <div class="mb-3">
-                                    <label for="voice-selection" class="form-label">Select Voice</label>
-                                    <select class="form-select mb-2" id="voice-selection">
-                                        <option value="Aria">Aria (Default)</option>
-                                        <option value="Roger">Roger</option>
-                                        <option value="Sarah">Sarah</option>
-                                        <option value="Laura">Laura</option>
-                                        <option value="Charlie">Charlie</option>
-                                    </select>
-                                </div>
-                                <button class="btn btn-primary" 
-                                        onclick="generateAudio({{ story.id }})" 
-                                        id="generate-audio-btn">
-                                    <i class="fas fa-microphone me-2"></i>Generate Audio Narration
-                                </button>
-                                <div id="audio-status" class="mt-2"></div>
-                                <div id="audio-preview" class="mt-3 d-none">
-                                    <audio id="generated-audio" controls class="w-100">
-                                        <source src="" type="audio/mpeg">
-                                        Your browser does not support the audio element.
-                                    </audio>
-                                </div>
-                            </div>
+                                    <div class="generate-audio-section">
+                                        <div class="mb-3">
+                                            <label for="voice-selection" class="form-label">Select Voice</label>
+                                            <select class="form-select mb-2" id="voice-selection">
+                                                <option value="Aria">Aria (Default)</option>
+                                                <option value="Roger">Roger</option>
+                                                <option value="Sarah">Sarah</option>
+                                                <option value="Laura">Laura</option>
+                                                <option value="Charlie">Charlie</option>
+                                            </select>
+                                        </div>
+                                        <!-- Store story ID in data attribute and pass it to function -->
+                                        <button class="btn btn-primary" 
+                                                id="generate-audio-btn"
+                                                data-story-id="{{ story.id }}"
+                                                onclick="generateAudio({{ story.id if story and story.id else 'null' }})">
+                                            <i class="fas fa-microphone me-2"></i>Generate Audio Narration
+                                        </button>
+                                        <div id="audio-status" class="mt-2"></div>
+                                        <div id="audio-preview" class="mt-3 d-none">
+                                            <audio id="generated-audio" controls class="w-100">
+                                                <source src="" type="audio/mpeg">
+                                                Your browser does not support the audio element.
+                                            </audio>
+                                        </div>
+                                    </div>
                         {% endif %}
                     </div>
 
@@ -157,9 +159,10 @@ function generateAudio(storyId) {
     const voiceSelection = document.getElementById('voice-selection');
     const generateButton = document.getElementById('generate-audio-btn');
 
-    if (!storyId) {
-        console.error('No story ID provided');
-        audioStatus.innerHTML = '<div class="alert alert-danger">Error: Story ID not found</div>';
+    // Additional validation for story ID
+    if (!storyId || storyId === 'null') {
+        console.error('Invalid or missing story ID:', storyId);
+        audioStatus.innerHTML = '<div class="alert alert-danger">Error: Story ID not found. Please refresh the page and try again.</div>';
         return;
     }
 
@@ -177,7 +180,7 @@ function generateAudio(storyId) {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            story_id: storyId,
+            story_id: parseInt(storyId, 10),
             voice: voiceSelection.value
         })
     })
