@@ -13,7 +13,7 @@ class VideoService:
     def __init__(self):
         """Initialize video generation service"""
         self.api_key = os.environ.get('RUNWAYML_API_KEY')
-        self.api_url = "https://api.runwayml.com/v1"
+        self.api_url = "https://api.runway.ml/v1"  # Updated to use api.runway.ml
         self.is_available = bool(self.api_key)
 
         if not self.is_available:
@@ -30,20 +30,14 @@ class VideoService:
         self.session.mount('https://', HTTPAdapter(max_retries=retries))
 
         try:
-            # Validate API key using a test generation request
+            # Validate API key using a test request
             headers = self._get_headers()
             logger.info("Validating RunwayML API key...")
 
-            # Make a minimal test request to validate the API key
-            test_payload = {
-                "prompt": "Test prompt",
-                "mode": "text",
-            }
-
-            response = self.session.post(
-                f"{self.api_url}/text",
+            # Test endpoint that doesn't consume credits
+            response = self.session.get(
+                f"{self.api_url}/user",
                 headers=headers,
-                json=test_payload,
                 timeout=10
             )
 
@@ -55,6 +49,7 @@ class VideoService:
             else:
                 logger.error(f"Failed to validate RunwayML API key: {response.text}")
                 self.is_available = False
+
         except requests.exceptions.RequestException as e:
             logger.error(f"Failed to initialize RunwayML: {str(e)}")
             self.is_available = False
@@ -76,19 +71,11 @@ class VideoService:
         return None
 
     def generate_video(self, title: str, description: str, duration: int = 15) -> Dict[str, Union[bool, str]]:
-        """
-        Generate a video based on story content using RunwayML
-        Args:
-            title: The title of the story
-            description: Story content or description for video generation
-            duration: Duration of the video in seconds (default: 15)
-        Returns:
-            Dictionary containing success status and either video URL or error message
-        """
+        """Generate a video based on story content"""
         if not self.is_available:
             return {
                 "success": False,
-                "error": "Video service is not properly configured"
+                "error": "Video service is not properly configured. Please check your RunwayML API key."
             }
 
         # Validate request parameters
@@ -105,43 +92,39 @@ class VideoService:
 
             # Prepare the request payload
             payload = {
-                "prompt": prompt,
-                "negative_prompt": "",
-                "fps": 24,
-                "width": 1024,
-                "height": 576,
-                "num_frames": duration * 24,  # Convert duration to frames
-                "num_inference_steps": 50
+                "input": {
+                    "prompt": prompt,
+                    "num_frames": duration * 24,  # Convert duration to frames
+                    "width": 1024,
+                    "height": 576,
+                    "fps": 24,
+                    "guidance_scale": 7.5,
+                    "num_inference_steps": 50
+                }
             }
 
             headers = self._get_headers()
 
             # Make the API request
             logger.info(f"Requesting video generation for story: {title}")
-            logger.debug(f"Using endpoint: {self.api_url}/inference")
-            logger.debug(f"Request payload: {payload}")
-
-            start_time = time.time()
             response = self.session.post(
                 f"{self.api_url}/inference",
                 json=payload,
                 headers=headers,
                 timeout=300  # 5 minutes timeout for video generation
             )
-            logger.debug(f"Request took {time.time() - start_time:.2f} seconds")
 
-            # Log the response status and content for debugging
+            # Log the response for debugging
             logger.debug(f"Response status: {response.status_code}")
-            logger.debug(f"Response content: {response.text[:200]}...")  # Log first 200 chars
+            logger.debug(f"Response content: {response.text[:200]}...")
 
             if response.status_code == 200:
                 result = response.json()
-                if 'output' in result:
+                if 'output' in result and 'url' in result['output']:
                     logger.info(f"Successfully generated video for story: {title}")
                     return {
                         "success": True,
-                        "video_url": result['output']['video_url'],
-                        "content_type": "video/mp4"
+                        "video_url": result['output']['url']
                     }
                 else:
                     error_msg = "Invalid response format from RunwayML API"
@@ -151,14 +134,7 @@ class VideoService:
                         "error": error_msg
                     }
             elif response.status_code == 401:
-                error_msg = "Invalid API key or authentication error. Please verify your RunwayML API key."
-                logger.error(f"{error_msg} Response: {response.text}")
-                return {
-                    "success": False,
-                    "error": error_msg
-                }
-            elif response.status_code == 429:
-                error_msg = "Rate limit exceeded. Please try again later."
+                error_msg = "Invalid API key or authentication error"
                 logger.error(error_msg)
                 return {
                     "success": False,
