@@ -35,14 +35,13 @@ class CulturalContextService:
             )
 
             user_prompt = self._create_analysis_prompt(content, region, theme)
-            
+
             response = self.client.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                response_format={"type": "json_object"},
                 temperature=0.3
             )
 
@@ -65,34 +64,26 @@ class CulturalContextService:
         return (
             f"Analyze this {theme.lower()} story from {region} with cultural context:\n\n"
             f"{content}\n\n"
-            "Provide analysis in JSON format with the following structure:\n"
-            "{\n"
-            '  "historical_context": {\n'
-            '    "period": "relevant historical period",\n'
-            '    "significance": "historical significance",\n'
-            '    "key_events": ["related historical events"]\n'
-            "  },\n"
-            '  "cultural_elements": {\n'
-            '    "traditions": ["relevant traditions"],\n'
-            '    "symbols": ["cultural symbols"],\n'
-            '    "practices": ["related practices"]\n'
-            "  },\n"
-            '  "modern_relevance": {\n'
-            '    "contemporary_significance": "current importance",\n'
-            '    "preservation_status": "how it\'s maintained today",\n'
-            '    "challenges": ["challenges in preserving this culture"]\n'
-            "  },\n"
-            '  "related_practices": [\n'
-            '    {\n'
-            '      "name": "practice name",\n'
-            '      "description": "brief description",\n'
-            '      "region": "where it\'s practiced"\n'
-            '    }\n'
-            "  ],\n"
-            '  "learn_more": [\n'
-            '    "suggested topics for further learning"\n'
-            "  ]\n"
-            "}"
+            "Format your analysis covering these aspects:\n"
+            "1. Historical Context:\n"
+            "   - Time period relevance\n"
+            "   - Historical significance\n"
+            "   - Key historical events\n\n"
+            "2. Cultural Elements:\n"
+            "   - Traditional practices\n"
+            "   - Cultural symbols\n"
+            "   - Customs and rituals\n\n"
+            "3. Modern Relevance:\n"
+            "   - Contemporary significance\n"
+            "   - Current preservation status\n"
+            "   - Modern adaptations\n\n"
+            "4. Related Cultural Practices:\n"
+            "   - Similar traditions\n"
+            "   - Regional variations\n"
+            "   - Cultural connections\n\n"
+            "5. Educational Resources:\n"
+            "   - Topics for further study\n"
+            "   - Cultural preservation initiatives"
         )
 
     def get_learning_resources(self, content: str, region: str) -> List[Dict[str, str]]:
@@ -108,7 +99,8 @@ class CulturalContextService:
                         "role": "system",
                         "content": (
                             "You are a cultural education specialist. Suggest learning "
-                            "resources about cultural elements mentioned in the content."
+                            "resources about cultural elements mentioned in the content. "
+                            "Format your response as a list of topics with descriptions."
                         )
                     },
                     {
@@ -116,19 +108,22 @@ class CulturalContextService:
                         "content": f"Suggest learning resources about cultural elements in this content from {region}:\n{content}"
                     }
                 ],
-                response_format={"type": "json_object"},
                 temperature=0.3
             )
 
-            resources = response.choices[0].message.content
-            return {
-                "success": True,
-                "resources": resources
-            }
+            resources_text = response.choices[0].message.content
+            # Parse the text response into a structured format
+            resources = [
+                {
+                    "topic": line.split(":")[0].strip(),
+                    "description": line.split(":")[1].strip()
+                }
+                for line in resources_text.split("\n")
+                if ":" in line
+            ]
+
+            return resources
 
         except Exception as e:
             logger.error(f"Error getting learning resources: {str(e)}")
-            return {
-                "success": False,
-                "error": "Failed to get learning resources"
-            }
+            return []

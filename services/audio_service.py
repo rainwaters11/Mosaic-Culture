@@ -1,10 +1,20 @@
 """ElevenLabs audio generation service"""
 import logging
 import os
-from typing import Dict, List, Optional, Union
-import requests
+from typing import Dict, List, Optional, Union, TypedDict
 
 logger = logging.getLogger(__name__)
+
+class AudioResult(TypedDict, total=False):
+    success: bool
+    audio_data: Optional[bytes]
+    content_type: Optional[str]
+    error: Optional[str]
+
+class VoiceResult(TypedDict, total=False):
+    success: bool
+    voices: List[str]
+    error: Optional[str]
 
 class AudioService:
     def __init__(self):
@@ -12,17 +22,17 @@ class AudioService:
         self.base_url = "https://api.elevenlabs.io/v1"
         self.default_voice = "Aria"  # Changed from Bella to Aria
         self.is_available = False
-        self.available_voices = [] # Initialize available_voices
+        self.available_voices: List[str] = []  # Initialize available_voices
         self._check_availability()
 
-    def _check_availability(self):
+    def _check_availability(self) -> None:
         """Check if the service is available by verifying the API key"""
         if not self.api_key:
             logger.warning("ELEVENLABS_API_KEY environment variable is not set")
             return
 
         try:
-            # Add proper authorization header
+            import requests
             headers = {"xi-api-key": self.api_key}
             response = requests.get(
                 f"{self.base_url}/voices",
@@ -37,8 +47,8 @@ class AudioService:
                 logger.info(f"Available voices: {', '.join(self.available_voices)}")
 
                 # Verify default voice exists
-                if self.default_voice not in self.available_voices:
-                    self.default_voice = self.available_voices[0] if self.available_voices else None
+                if self.default_voice not in self.available_voices and self.available_voices:
+                    self.default_voice = self.available_voices[0]
                     logger.warning(f"Default voice not found, using {self.default_voice}")
             else:
                 error_msg = response.json() if response.text else "No error details available"
@@ -46,7 +56,7 @@ class AudioService:
         except Exception as e:
             logger.error(f"Error checking ElevenLabs service: {str(e)}")
 
-    def generate_audio(self, text: str, voice_name: Optional[str] = None) -> Dict[str, Union[bool, bytes, str]]:
+    def generate_audio(self, text: str, voice_name: Optional[str] = None) -> AudioResult:
         """
         Generate audio from text using ElevenLabs API
         Args:
@@ -65,16 +75,16 @@ class AudioService:
             return {"success": False, "error": "No text provided"}
 
         try:
+            import requests
             # Use provided voice or default
             voice_name = voice_name or self.default_voice
 
             # Verify voice exists
             if voice_name not in self.available_voices:
-                logger.warning(f"Requested voice '{voice_name}' not found. Available voices: {', '.join(self.available_voices)}")
+                logger.warning(f"Requested voice '{voice_name}' not found. Using default: {self.default_voice}")
                 voice_name = self.default_voice
-                logger.info(f"Falling back to default voice: {voice_name}")
 
-            # Get voice ID for the requested voice name
+            # Get voice ID
             voice_id = self._get_voice_id(voice_name)
             if not voice_id:
                 return {"success": False, "error": f"Voice '{voice_name}' not found"}
@@ -105,10 +115,10 @@ class AudioService:
                     "audio_data": response.content,
                     "content_type": response.headers.get('Content-Type', 'audio/mpeg')
                 }
-            else:
-                error_msg = f"Error from ElevenLabs API: {response.text}"
-                logger.error(error_msg)
-                return {"success": False, "error": error_msg}
+
+            error_msg = f"Error from ElevenLabs API: {response.text}"
+            logger.error(error_msg)
+            return {"success": False, "error": error_msg}
 
         except Exception as e:
             error_msg = f"Error generating audio: {str(e)}"
@@ -118,6 +128,7 @@ class AudioService:
     def _get_voice_id(self, voice_name: str) -> Optional[str]:
         """Get the voice ID for a given voice name"""
         try:
+            import requests
             headers = {"xi-api-key": self.api_key}
             response = requests.get(f"{self.base_url}/voices", headers=headers)
 
@@ -137,7 +148,7 @@ class AudioService:
             logger.error(f"Error fetching voices: {str(e)}")
             return None
 
-    def get_available_voices(self) -> Dict[str, Union[bool, List[str], str]]:
+    def get_available_voices(self) -> VoiceResult:
         """Get a list of available voices"""
         if not self.is_available:
             return {
@@ -147,6 +158,7 @@ class AudioService:
             }
 
         try:
+            import requests
             headers = {"xi-api-key": self.api_key}
             response = requests.get(f"{self.base_url}/voices", headers=headers)
 
@@ -169,7 +181,8 @@ class AudioService:
                 "error": error_msg,
                 "voices": []
             }
-    def generate_soundtrack(self, story_content: str, region: str, theme: str) -> Dict[str, Union[bool, bytes, str]]:
+
+    def generate_soundtrack(self, story_content: str, region: str, theme: str) -> AudioResult:
         """
         Generate a dynamic soundtrack based on story content and cultural context
         Args:
